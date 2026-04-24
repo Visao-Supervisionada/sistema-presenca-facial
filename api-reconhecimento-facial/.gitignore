@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual env
+.venv/
+venv/
+env/
+
+# Sistema/editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Dados locais
+data/
+uploads/
+
+# Cache/modelos temporários
+model_cache/
+.ipynb_checkpoints/
+
+# Imagens locais de teste
+*.jpg
+*.jpeg
+*.png
+*.webp
+
+# Segredos/ambiente
+.env
+.env.*
+secrets/
+serviceAccountKey.json
+
+# Logs
+*.log

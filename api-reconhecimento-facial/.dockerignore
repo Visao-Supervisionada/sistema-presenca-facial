@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual env
+.venv/
+venv/
+env/
+
+# Cache local
+model_cache/
+
+# Uploads e imagens de teste
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.webp
+
+# Ambiente e segredos
+.env
+.env.*
+secrets/
+serviceAccountKey.json
+
+# Editor/sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Notebooks
+.ipynb_checkpoints/
+
+# scripts e logs
+scripts/

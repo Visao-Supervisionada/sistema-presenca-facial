@@ -1,0 +1,8 @@
+services:
+  face-api:
+    container_name: api-presenca-facial
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
