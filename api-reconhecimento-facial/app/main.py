@@ -5,6 +5,7 @@ from app.face_service import face_service
 from app.local_store import (
     add_person,
     clear_people,
+    delete_person_by_registration,
     list_people_without_embeddings,
     load_people,
 )
@@ -205,4 +206,21 @@ def delete_people():
     return {
         "success": True,
         "message": "Todos os cadastros locais foram removidos.",
+    }
+
+
+@app.delete("/people/{registration}")
+def delete_person(registration: str):
+    deleted = delete_person_by_registration(registration)
+
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail="Pessoa não encontrada na base facial.",
+        )
+
+    return {
+        "success": True,
+        "message": "Pessoa removida da base facial.",
+        "registration": registration,
     }

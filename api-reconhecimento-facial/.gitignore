@@ -19,7 +19,8 @@ env/
 Thumbs.db
 
 # Dados locais
-data/
+data/*
+!data/.gitkeep
 uploads/
 
 # Cache/modelos temporários

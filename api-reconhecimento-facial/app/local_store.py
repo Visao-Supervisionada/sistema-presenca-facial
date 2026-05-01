@@ -98,3 +98,21 @@ def list_people_without_embeddings() -> List[Dict[str, str]]:
 
 def clear_people() -> None:
     save_people([])
+
+
+def delete_person_by_registration(registration: str) -> bool:
+    people = load_people()
+
+    normalized_registration = registration.strip()
+
+    filtered_people = [
+        person
+        for person in people
+        if person.get("registration", "").strip() != normalized_registration
+    ]
+
+    if len(filtered_people) == len(people):
+        return False
+
+    save_people(filtered_people)
+    return True
