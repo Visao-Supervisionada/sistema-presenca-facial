@@ -65,3 +65,14 @@ export async function buscarAlunoPorId(id: string): Promise<Aluno | null> {
 export async function excluirAlunoPorId(id: string): Promise<void> {
   await colecaoAlunos.doc(id).delete();
 }
+
+export async function listarAlunosPorTurma(turma: string): Promise<Aluno[]> {
+  const turmaNormalizada = String(turma).trim();
+
+  const snapshot = await colecaoAlunos
+    .where('turma', '==', turmaNormalizada)
+    .where('ativo', '==', true)
+    .get();
+
+  return snapshot.docs.map((documento) => documento.data() as Aluno);
+}

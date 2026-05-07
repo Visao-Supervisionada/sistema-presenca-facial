@@ -1,5 +1,15 @@
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
+export interface Aluno {
+  id: string;
+  nome: string;
+  matricula: string;
+  turma: string;
+  perfil: string;
+  faceId?: string;
+  ativo: boolean;
+}
+
 export interface DadosCadastroAluno {
   nome: string;
   matricula: string;
@@ -28,15 +38,17 @@ function converterBase64ParaArquivo(base64: string, nomeArquivo: string): File {
 export async function cadastrarAluno(dados: DadosCadastroAluno) {
   const formulario = new FormData();
 
+  const matriculaNormalizada = dados.matricula.trim();
+
   const arquivoImagem = converterBase64ParaArquivo(
     dados.imagemBase64,
-    `${dados.matricula}.jpg`,
+    `${matriculaNormalizada}.jpg`,
   );
 
-  formulario.append('nome', dados.nome);
-  formulario.append('matricula', dados.matricula);
-  formulario.append('turma', dados.turma);
-  formulario.append('perfil', dados.perfil);
+  formulario.append('nome', dados.nome.trim());
+  formulario.append('matricula', matriculaNormalizada);
+  formulario.append('turma', dados.turma.trim());
+  formulario.append('perfil', dados.perfil.trim());
   formulario.append('file', arquivoImagem);
 
   const resposta = await fetch(`${BACKEND_URL}/api/alunos`, {
@@ -51,6 +63,20 @@ export async function cadastrarAluno(dados: DadosCadastroAluno) {
   }
 
   return resultado;
+}
+
+export async function listarAlunos() {
+  const resposta = await fetch(`${BACKEND_URL}/api/alunos`);
+  const resultado = await resposta.json();
+
+  if (!resposta.ok) {
+    throw new Error(resultado.message || 'Erro ao listar alunos.');
+  }
+
+  return resultado as {
+    total: number;
+    alunos: Aluno[];
+  };
 }
 
 export async function excluirAluno(id: string) {

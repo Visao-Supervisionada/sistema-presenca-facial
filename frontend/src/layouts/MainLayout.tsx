@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
+  BookOpen,
+  CalendarClock,
   Camera,
   FileText,
   LayoutDashboard,
@@ -22,12 +24,15 @@ export default function MainLayout() {
 
   const itensNavegacao = [
     { nome: 'Dashboard', caminho: '/dashboard', icone: LayoutDashboard },
+    { nome: 'Diário Digital', caminho: '/diario', icone: BookOpen },
+    { nome: 'Horário', caminho: '/horario', icone: CalendarClock },
     { nome: 'Reconhecimento', caminho: '/recognition', icone: Camera },
     { nome: 'Cadastro', caminho: '/registration', icone: Users },
     { nome: 'Relatórios', caminho: '/reports', icone: FileText },
   ];
 
   function sairDoSistema() {
+    localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('usuarioAutenticado');
     navegar('/login');
   }
@@ -56,6 +61,7 @@ export default function MainLayout() {
             </div>
 
             <button
+              type="button"
               className="text-gray-500 hover:text-gray-700 lg:hidden"
               onClick={() => setMenuAberto(false)}
             >
@@ -100,7 +106,7 @@ export default function MainLayout() {
             </div>
 
             <Button
-              variant="outline"
+              variante="contorno"
               className="w-full justify-start text-red-600 hover:bg-red-50"
               onClick={sairDoSistema}
             >
@@ -118,6 +124,7 @@ export default function MainLayout() {
           <div className="flex items-center gap-2">
             <NotificationCenter />
             <button
+              type="button"
               className="text-gray-500 hover:text-gray-700"
               onClick={() => setMenuAberto(true)}
             >

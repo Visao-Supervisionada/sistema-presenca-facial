@@ -4,14 +4,18 @@ import { AlertCircle, CheckCircle2, ScanFace, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { registrarPresencaPorReconhecimento } from '@/services/reconhecimentoService';
+import { validarReconhecimento } from '@/services/reconhecimentoService';
 
-const LARGURA_CAPTURA = 640;
-const ALTURA_CAPTURA = 480;
+const LARGURA_CAPTURA = 416;
+const ALTURA_CAPTURA = 312;
+
+const INTERVALO_RECONHECIMENTO_MS = 500;
+const COOLDOWN_LOG_MESMA_PESSOA_MS = 30000;
 
 interface RegistroTela {
   id: string;
   nome: string;
+  matricula?: string;
   status: 'sucesso' | 'erro';
   acao: string;
   confianca: number;
@@ -23,9 +27,11 @@ export default function Recognition() {
   const webcamRef = useRef<Webcam>(null);
   const areaCameraRef = useRef<HTMLDivElement>(null);
   const processandoRef = useRef(false);
+  const ultimoLogPorPessoaRef = useRef<Record<string, number>>({});
 
   const [escaneando] = useState(true);
   const [processando, setProcessando] = useState(false);
+  const [rostosReconhecidos, setRostosReconhecidos] = useState<RegistroTela[]>([]);
   const [ultimoReconhecimento, setUltimoReconhecimento] = useState<RegistroTela | null>(null);
   const [registros, setRegistros] = useState<RegistroTela[]>([]);
 
@@ -43,55 +49,47 @@ export default function Recognition() {
         processandoRef.current = true;
         setProcessando(true);
 
-        const resposta = await registrarPresencaPorReconhecimento(imagem);
+        const resposta = await validarReconhecimento(imagem);
 
-        if (resposta.total_faces === 0) {
+        if (resposta.total_faces === 0 || !resposta.registros?.length) {
+          setRostosReconhecidos([]);
           setUltimoReconhecimento(null);
           return;
         }
 
-        const primeiroRegistro = resposta.registros[0];
+        const novosRostos: RegistroTela[] = resposta.registros.map((registro) => {
+          const reconhecimento = registro.reconhecimento;
 
-        if (!primeiroRegistro) {
-          setUltimoReconhecimento(null);
-          return;
-        }
+          const reconhecimentoValido = registro.acao === 'reconhecido';
 
-        const presencaValida =
-          primeiroRegistro.acao === 'entrada' ||
-          primeiroRegistro.acao === 'saida' ||
-          primeiroRegistro.acao === 'ja_finalizada';
+          const nomeReconhecido =
+            registro.aluno?.nome ||
+            reconhecimento?.name ||
+            'Desconhecido';
 
-        const nomeReconhecido =
-          primeiroRegistro.presenca?.nome ||
-          primeiroRegistro.reconhecimento.name ||
-          'Desconhecido';
+          return {
+            id: crypto.randomUUID(),
+            nome: nomeReconhecido,
+            matricula:
+              registro.aluno?.matricula ||
+              reconhecimento?.registration ||
+              undefined,
+            status: reconhecimentoValido ? 'sucesso' : 'erro',
+            acao: registro.acao || 'desconhecido',
+            confianca: reconhecimento?.confidence || 0,
+            horario: new Date().toLocaleTimeString('pt-BR'),
+            bbox: reconhecimento?.bbox,
+          };
+        });
 
-        const novoRegistro: RegistroTela = {
-          id: crypto.randomUUID(),
-          nome: nomeReconhecido,
-          status: presencaValida ? 'sucesso' : 'erro',
-          acao: primeiroRegistro.acao,
-          confianca: primeiroRegistro.reconhecimento.confidence || 0,
-          horario: new Date().toLocaleTimeString('pt-BR'),
-          bbox: primeiroRegistro.reconhecimento.bbox,
-        };
+        setRostosReconhecidos(novosRostos);
 
-        setUltimoReconhecimento(novoRegistro);
-        setRegistros((registrosAtuais) => [novoRegistro, ...registrosAtuais].slice(0, 10));
+        const rostoPrincipal =
+          novosRostos.find((rosto) => rosto.status === 'sucesso') || novosRostos[0];
 
-        if (novoRegistro.status === 'sucesso') {
-          toast.success(`Reconhecido: ${novoRegistro.nome}`, {
-            description: `Ação: ${formatarAcao(novoRegistro.acao)} • Confiança: ${novoRegistro.confianca.toFixed(2)}`,
-          });
-        } else {
-          toast.error(
-            novoRegistro.nome === 'Desconhecido' ? 'Rosto desconhecido' : 'Aluno não encontrado',
-            {
-              description: `${formatarAcao(novoRegistro.acao)} • Confiança: ${novoRegistro.confianca.toFixed(2)}`,
-            },
-          );
-        }
+        setUltimoReconhecimento(rostoPrincipal || null);
+
+        registrarLogsComCooldown(novosRostos);
       } catch (error) {
         toast.error('Erro no reconhecimento.', {
           description: error instanceof Error ? error.message : 'Erro inesperado.',
@@ -100,12 +98,47 @@ export default function Recognition() {
         processandoRef.current = false;
         setProcessando(false);
       }
-    }, 3000);
+    }, INTERVALO_RECONHECIMENTO_MS);
 
     return () => clearInterval(intervalo);
   }, [escaneando]);
 
+  function registrarLogsComCooldown(novosRostos: RegistroTela[]) {
+    const agora = Date.now();
+    const novosLogs: RegistroTela[] = [];
+
+    for (const rosto of novosRostos) {
+      const chavePessoa = rosto.matricula || rosto.nome || 'desconhecido';
+
+      const ultimoLog = ultimoLogPorPessoaRef.current[chavePessoa] || 0;
+      const dentroDoCooldown = agora - ultimoLog < COOLDOWN_LOG_MESMA_PESSOA_MS;
+
+      if (dentroDoCooldown) continue;
+
+      ultimoLogPorPessoaRef.current[chavePessoa] = agora;
+      novosLogs.push(rosto);
+
+      if (rosto.status === 'sucesso') {
+        toast.success(`Reconhecido: ${rosto.nome}`, {
+          description: `Ação: ${formatarAcao(rosto.acao)} • Confiança: ${rosto.confianca.toFixed(2)}`,
+        });
+      } else {
+        toast.error(
+          rosto.nome === 'Desconhecido' ? 'Rosto desconhecido' : 'Aluno não encontrado',
+          {
+            description: `${formatarAcao(rosto.acao)} • Confiança: ${rosto.confianca.toFixed(2)}`,
+          },
+        );
+      }
+    }
+
+    if (novosLogs.length > 0) {
+      setRegistros((registrosAtuais) => [...novosLogs, ...registrosAtuais].slice(0, 20));
+    }
+  }
+
   function formatarAcao(acao: string) {
+    if (acao === 'reconhecido') return 'Aluno reconhecido';
     if (acao === 'entrada') return 'Entrada registrada';
     if (acao === 'saida') return 'Saída registrada';
     if (acao === 'ja_finalizada') return 'Presença já finalizada';
@@ -139,8 +172,6 @@ export default function Recognition() {
       height: `${(y2 - y1) * escalaY}px`,
     };
   }
-
-  const estiloCaixaRosto = calcularEstiloCaixa(ultimoReconhecimento?.bbox);
 
   return (
     <div className="flex h-full flex-col space-y-6">
@@ -182,6 +213,7 @@ export default function Recognition() {
               audio={false}
               ref={webcamRef}
               screenshotFormat="image/jpeg"
+              screenshotQuality={0.55}
               minScreenshotWidth={LARGURA_CAPTURA}
               minScreenshotHeight={ALTURA_CAPTURA}
               videoConstraints={{
@@ -192,31 +224,34 @@ export default function Recognition() {
               className="h-full w-full object-cover"
             />
 
-            {ultimoReconhecimento && estiloCaixaRosto && (
-              <div
-                className={`pointer-events-none absolute border-2 ${
-                  ultimoReconhecimento.status === 'sucesso'
-                    ? 'border-green-500'
-                    : 'border-red-500'
-                }`}
-                style={estiloCaixaRosto}
-              >
-                <div className="absolute left-0 top-0 h-4 w-4 border-l-2 border-t-2 border-yellow-400" />
-                <div className="absolute right-0 top-0 h-4 w-4 border-r-2 border-t-2 border-yellow-400" />
-                <div className="absolute bottom-0 left-0 h-4 w-4 border-b-2 border-l-2 border-yellow-400" />
-                <div className="absolute bottom-0 right-0 h-4 w-4 border-b-2 border-r-2 border-yellow-400" />
+            {rostosReconhecidos.map((rosto) => {
+              const estiloCaixaRosto = calcularEstiloCaixa(rosto.bbox);
 
+              if (!estiloCaixaRosto) return null;
+
+              return (
                 <div
-                  className={`absolute -top-8 left-0 whitespace-nowrap rounded px-2 py-1 text-xs font-bold text-white ${
-                    ultimoReconhecimento.status === 'sucesso'
-                      ? 'bg-green-600'
-                      : 'bg-red-600'
+                  key={rosto.id}
+                  className={`pointer-events-none absolute border-2 ${
+                    rosto.status === 'sucesso' ? 'border-green-500' : 'border-red-500'
                   }`}
+                  style={estiloCaixaRosto}
                 >
-                  {ultimoReconhecimento.nome} ({ultimoReconhecimento.confianca.toFixed(2)})
+                  <div className="absolute left-0 top-0 h-4 w-4 border-l-2 border-t-2 border-yellow-400" />
+                  <div className="absolute right-0 top-0 h-4 w-4 border-r-2 border-t-2 border-yellow-400" />
+                  <div className="absolute bottom-0 left-0 h-4 w-4 border-b-2 border-l-2 border-yellow-400" />
+                  <div className="absolute bottom-0 right-0 h-4 w-4 border-b-2 border-r-2 border-yellow-400" />
+
+                  <div
+                    className={`absolute -top-8 left-0 whitespace-nowrap rounded px-2 py-1 text-xs font-bold text-white ${
+                      rosto.status === 'sucesso' ? 'bg-green-600' : 'bg-red-600'
+                    }`}
+                  >
+                    {rosto.nome} ({rosto.confianca.toFixed(2)})
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })}
 
             {ultimoReconhecimento && (
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-6">
@@ -299,6 +334,12 @@ export default function Recognition() {
                         {formatarAcao(registro.acao)} • Confiança:{' '}
                         {registro.confianca.toFixed(2)}
                       </p>
+
+                      {registro.matricula && (
+                        <p className="mt-0.5 text-[10px] text-gray-400">
+                          Matrícula: {registro.matricula}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}

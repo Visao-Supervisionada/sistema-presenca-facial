@@ -7,7 +7,7 @@ export interface RegistroReconhecimentoBackend {
     name: string;
     registration: string;
     confidence: number;
-    cosine_confidence: number;
+    cosine_confidence?: number;
   };
   acao: 'entrada' | 'saida' | 'ja_finalizada' | 'aluno_nao_encontrado' | 'desconhecido';
   presenca?: {
@@ -29,6 +29,32 @@ export interface RespostaPresencaReconhecimento {
   total_faces: number;
   classifier_loaded: boolean;
   registros: RegistroReconhecimentoBackend[];
+}
+
+export interface ReconhecimentoValidado {
+  acao: 'reconhecido' | 'desconhecido' | 'aluno_nao_encontrado';
+  alunoEncontrado: boolean;
+  aluno?: {
+    id: string;
+    nome: string;
+    matricula: string;
+    turma: string;
+    perfil: string;
+  };
+  reconhecimento: {
+    bbox?: number[];
+    matched: boolean;
+    name: string;
+    registration: string;
+    confidence: number;
+    cosine_confidence?: number;
+  };
+}
+
+export interface RespostaValidarReconhecimento {
+  success: boolean;
+  total_faces: number;
+  registros: ReconhecimentoValidado[];
 }
 
 function converterBase64ParaArquivo(base64: string, nomeArquivo: string): File {
@@ -69,6 +95,32 @@ export async function registrarPresencaPorReconhecimento(
 
   if (!resposta.ok) {
     throw new Error(resultado.message || 'Erro ao processar reconhecimento.');
+  }
+
+  return resultado;
+}
+
+export async function validarReconhecimento(
+  imagemBase64: string,
+): Promise<RespostaValidarReconhecimento> {
+  const formulario = new FormData();
+
+  const arquivoImagem = converterBase64ParaArquivo(
+    imagemBase64,
+    `frame-${Date.now()}.jpg`,
+  );
+
+  formulario.append('file', arquivoImagem);
+
+  const resposta = await fetch(`${BACKEND_URL}/api/reconhecimento/validar`, {
+    method: 'POST',
+    body: formulario,
+  });
+
+  const resultado = await resposta.json();
+
+  if (!resposta.ok) {
+    throw new Error(resultado.message || 'Erro ao validar reconhecimento.');
   }
 
   return resultado;

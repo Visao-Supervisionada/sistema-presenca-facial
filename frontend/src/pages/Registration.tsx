@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
-import { Camera, Loader2, Save, User, X } from "lucide-react";
+import { Camera, Loader2, Save, Trash2, User, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { cadastrarAluno } from "@/services/alunosService";
+import {
+  cadastrarAluno,
+  excluirAluno,
+  listarAlunos,
+  type Aluno,
+} from "@/services/alunosService";
 
 export default function Registration() {
   const [imagemCapturada, setImagemCapturada] = useState<string | null>(null);
   const [capturando, setCapturando] = useState(false);
   const [salvando, setSalvando] = useState(false);
+
+  const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [carregandoAlunos, setCarregandoAlunos] = useState(false);
+  const [excluindoAlunoId, setExcluindoAlunoId] = useState<string | null>(null);
 
   const [dadosFormulario, setDadosFormulario] = useState({
     nome: "",
@@ -29,13 +38,37 @@ export default function Registration() {
 
   const webcamRef = useRef<Webcam>(null);
 
+  async function carregarAlunos() {
+    try {
+      setCarregandoAlunos(true);
+
+      const resultado = await listarAlunos();
+
+      setAlunos(resultado.alunos);
+    } catch (error) {
+      toast.error("Erro ao carregar alunos.", {
+        description:
+          error instanceof Error ? error.message : "Erro inesperado.",
+      });
+    } finally {
+      setCarregandoAlunos(false);
+    }
+  }
+
+  useEffect(() => {
+    carregarAlunos();
+  }, []);
+
   const capturarImagem = useCallback(() => {
     const imagem = webcamRef.current?.getScreenshot();
 
     if (imagem) {
       setImagemCapturada(imagem);
       setCapturando(false);
+      return;
     }
+
+    toast.error("Não foi possível capturar a imagem.");
   }, []);
 
   function tirarOutraFoto() {
@@ -75,6 +108,8 @@ export default function Registration() {
 
       setImagemCapturada(null);
       setCapturando(false);
+
+      await carregarAlunos();
     } catch (error) {
       toast.error("Erro ao cadastrar aluno.", {
         description:
@@ -82,6 +117,33 @@ export default function Registration() {
       });
     } finally {
       setSalvando(false);
+    }
+  }
+
+  async function removerAluno(aluno: Aluno) {
+    const confirmou = window.confirm(
+      `Deseja excluir ${aluno.nome}? Isso também remove o cadastro facial da API.`,
+    );
+
+    if (!confirmou) return;
+
+    try {
+      setExcluindoAlunoId(aluno.id);
+
+      await excluirAluno(aluno.id);
+
+      toast.success("Aluno excluído com sucesso.", {
+        description: "O aluno foi removido do Firebase e da API facial.",
+      });
+
+      await carregarAlunos();
+    } catch (error) {
+      toast.error("Erro ao excluir aluno.", {
+        description:
+          error instanceof Error ? error.message : "Erro inesperado.",
+      });
+    } finally {
+      setExcluindoAlunoId(null);
     }
   }
 
@@ -258,7 +320,12 @@ export default function Registration() {
                       audio={false}
                       ref={webcamRef}
                       screenshotFormat="image/jpeg"
-                      videoConstraints={{ facingMode: "user" }}
+                      screenshotQuality={0.75}
+                      videoConstraints={{
+                        width: 640,
+                        height: 480,
+                        facingMode: "user",
+                      }}
                       className="h-full w-full object-cover"
                     />
 
@@ -323,6 +390,88 @@ export default function Registration() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Alunos cadastrados</CardTitle>
+          <CardDescription>
+            Exclua por aqui para remover também o cadastro facial da API.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          {carregandoAlunos ? (
+            <div className="flex items-center justify-center py-10 text-gray-500">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Carregando alunos...
+            </div>
+          ) : alunos.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-500">
+              Nenhum aluno cadastrado.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
+                  <tr>
+                    <th className="px-4 py-3">Aluno</th>
+                    <th className="px-4 py-3">Matrícula</th>
+                    <th className="px-4 py-3">Turma</th>
+                    <th className="px-4 py-3">Perfil</th>
+                    <th className="px-4 py-3">Face ID</th>
+                    <th className="px-4 py-3 text-right">Ações</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {alunos.map((aluno) => {
+                    const excluindo = excluindoAlunoId === aluno.id;
+
+                    return (
+                      <tr
+                        key={aluno.id}
+                        className="border-b last:border-0 hover:bg-gray-50"
+                      >
+                        <td className="px-4 py-3 font-medium text-gray-900">
+                          {aluno.nome}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {aluno.matricula}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {aluno.turma}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {aluno.perfil}
+                        </td>
+                        <td className="max-w-[180px] truncate px-4 py-3 text-xs text-gray-500">
+                          {aluno.faceId || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            type="button"
+                            variante="destrutivo"
+                            tamanho="pequeno"
+                            disabled={excluindo}
+                            onClick={() => removerAluno(aluno)}
+                          >
+                            {excluindo ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="mr-2 h-4 w-4" />
+                            )}
+                            Excluir
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

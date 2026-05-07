@@ -7,11 +7,15 @@ import Dashboard from '@/pages/Dashboard';
 import Registration from '@/pages/Registration';
 import Recognition from '@/pages/Recognition';
 import Reports from '@/pages/Reports';
+import Horario from '@/pages/Horario';
+import DiarioDigital from '@/pages/DiarioDigital';
 
-function RotaPrivada({ children }: { children: React.ReactNode }) {
-  const usuarioAutenticado = localStorage.getItem('usuarioAutenticado') === 'true';
+function PrivateRoute({ children }: { children: React.ReactNode }) {
+  const estaAutenticado =
+    localStorage.getItem('isAuthenticated') === 'true' ||
+    localStorage.getItem('usuarioAutenticado') === 'true';
 
-  if (!usuarioAutenticado) {
+  if (!estaAutenticado) {
     return <Navigate to="/login" replace />;
   }
 
@@ -29,13 +33,15 @@ export default function App() {
         <Route
           path="/"
           element={
-            <RotaPrivada>
+            <PrivateRoute>
               <MainLayout />
-            </RotaPrivada>
+            </PrivateRoute>
           }
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="diario" element={<DiarioDigital />} />
+          <Route path="horario" element={<Horario />} />
           <Route path="registration" element={<Registration />} />
           <Route path="recognition" element={<Recognition />} />
           <Route path="reports" element={<Reports />} />
