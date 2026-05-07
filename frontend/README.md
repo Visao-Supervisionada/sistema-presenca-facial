@@ -63,7 +63,7 @@ Senha: admin
 
 ## 6. Fluxo básico de teste
 
-### 1. Cadastrar aluno
+### 6.1. Cadastrar aluno
 
 Acesse a tela **Cadastro**.
 
@@ -77,7 +77,7 @@ Preencha:
 
 Depois clique em **Salvar Cadastro**.
 
-### 2. Verificar se cadastrou
+### 6.2. Verificar se cadastrou
 
 Confira no navegador:
 
@@ -93,7 +93,7 @@ http://localhost:8000/people
 
 A matrícula do aluno precisa ser igual nos dois lugares.
 
-### 3. Testar reconhecimento
+### 6.3. Testar reconhecimento
 
 Acesse a tela **Reconhecimento**.
 
@@ -106,36 +106,7 @@ O sistema deve mostrar:
 - confiança;
 - log de reconhecimento.
 
-### 4. Cadastrar horário
 
-Acesse a tela **Horário**.
-
-Cadastre:
-
-- matrícula;
-- nome;
-- turma;
-- dia da semana;
-- horário de entrada;
-- limite de atraso;
-- horário de saída.
-
-### 5. Usar Diário Digital
-
-Acesse a tela **Diário Digital**.
-
-Informe:
-
-- turma;
-- data.
-
-Depois clique em **Carregar**.
-
-Use os botões para:
-
-- confirmar entrada;
-- confirmar saída;
-- marcar falta.
 
 ## 7. Ordem correta para executar o projeto completo
 
