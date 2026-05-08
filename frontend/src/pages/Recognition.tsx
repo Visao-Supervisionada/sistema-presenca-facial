@@ -6,10 +6,10 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { validarReconhecimento } from '@/services/reconhecimentoService';
 
-const LARGURA_CAPTURA = 416;
-const ALTURA_CAPTURA = 312;
+const LARGURA_CAPTURA = 320;
+const ALTURA_CAPTURA = 240;
 
-const INTERVALO_RECONHECIMENTO_MS = 500;
+const INTERVALO_RECONHECIMENTO_MS = 700;
 const COOLDOWN_LOG_MESMA_PESSOA_MS = 30000;
 
 interface RegistroTela {
@@ -213,7 +213,7 @@ export default function Recognition() {
               audio={false}
               ref={webcamRef}
               screenshotFormat="image/jpeg"
-              screenshotQuality={0.55}
+              screenshotQuality={0.4}
               minScreenshotWidth={LARGURA_CAPTURA}
               minScreenshotHeight={ALTURA_CAPTURA}
               videoConstraints={{
@@ -221,7 +221,7 @@ export default function Recognition() {
                 height: ALTURA_CAPTURA,
                 facingMode: 'user',
               }}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
 
             {rostosReconhecidos.map((rosto) => {
