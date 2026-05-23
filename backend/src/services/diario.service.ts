@@ -323,7 +323,7 @@ export async function justificarFalta(params: {
     id: referencia.id,
     alunoId: params.alunoId,
     turma: params.turma,
-    componente: params.componente,
+    componente: params.componente ?? null,
     data: params.data,
     justificativa: params.justificativa,
     criadoEm: timestampServidor(),
