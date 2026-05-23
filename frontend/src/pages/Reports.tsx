@@ -66,12 +66,12 @@ export default function Reports() {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variante="contorno">
             <FileText className="mr-2 h-4 w-4" />
             PDF
           </Button>
 
-          <Button variant="outline">
+          <Button variante="contorno">
             <FileSpreadsheet className="mr-2 h-4 w-4 text-green-600" />
             Excel
           </Button>
