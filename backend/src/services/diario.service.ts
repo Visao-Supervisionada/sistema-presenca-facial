@@ -4,8 +4,10 @@ import {
   PresencaDoDia,
   PresencaMensalAluno,
   RegistroDiario,
+  RespostaDiarioMensal,
   StatusEntrada,
   StatusPresencaMensal,
+  TotaisMensais,
 } from '../types/diario.types';
 import { DiaSemana } from '../types/horario.types';
 import { buscarAlunoPorMatricula, listarAlunosPorTurma } from './alunos.service';
@@ -349,42 +351,44 @@ export async function listarDiarioMensal(params: {
   mes: number;
   ano: number;
   componente?: string;
-}): Promise<PresencaMensalAluno[]> {
+}): Promise<RespostaDiarioMensal> {
   const { turmaId, mes, ano } = params;
 
   const dataInicio = `${ano}-${String(mes).padStart(2, '0')}-01`;
   const ultimoDia = new Date(ano, mes, 0).getDate();
   const dataFim = `${ano}-${String(mes).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`;
+  const hoje = new Date().toISOString().slice(0, 10);
 
   const alunos = await listarAlunosPorTurma(turmaId);
 
+  // Busca apenas por turma — filtra datas em memória para evitar índice composto no Firestore
   const snapshotDiario = await colecaoDiario
     .where('turma', '==', turmaId)
-    .where('data', '>=', dataInicio)
-    .where('data', '<=', dataFim)
     .get();
 
   const registrosPorAluno: Record<string, Record<string, RegistroDiario>> = {};
   for (const doc of snapshotDiario.docs) {
     const reg = doc.data() as RegistroDiario;
+    if (reg.data < dataInicio || reg.data > dataFim) continue;
     if (!registrosPorAluno[reg.alunoId]) registrosPorAluno[reg.alunoId] = {};
     registrosPorAluno[reg.alunoId][reg.data] = reg;
   }
 
   const snapshotJust = await colecaoJustificativas
     .where('turma', '==', turmaId)
-    .where('data', '>=', dataInicio)
-    .where('data', '<=', dataFim)
     .get();
 
   const justificativasPorAluno: Record<string, Record<string, string>> = {};
   for (const doc of snapshotJust.docs) {
     const just = doc.data() as JustificativaFalta;
+    if (just.data < dataInicio || just.data > dataFim) continue;
     if (!justificativasPorAluno[just.alunoId]) justificativasPorAluno[just.alunoId] = {};
     justificativasPorAluno[just.alunoId][just.data] = just.justificativa;
   }
 
-  const resultado: PresencaMensalAluno[] = alunos.map((aluno) => {
+  const totais: TotaisMensais = { presentes: 0, atrasados: 0, faltas: 0, pendentes: 0 };
+
+  const alunosResult: PresencaMensalAluno[] = alunos.map((aluno) => {
     const registrosAluno = registrosPorAluno[aluno.id] || {};
     const justAluno = justificativasPorAluno[aluno.id] || {};
     const dias: Record<string, PresencaDoDia> = {};
@@ -397,13 +401,25 @@ export async function listarDiarioMensal(params: {
       const reg = registrosAluno[dataStr];
       const justificativa = justAluno[dataStr];
 
-      let status: StatusPresencaMensal = 'pendente';
+      let status: StatusPresencaMensal;
+
       if (justificativa) {
         status = 'justificado';
       } else if (reg) {
         const s = reg.statusEntrada;
         status = s === 'ausente' ? 'falta' : (s as StatusPresencaMensal);
+      } else if (dataStr <= hoje) {
+        // Dia passado sem registro = falta
+        status = 'falta';
+      } else {
+        // Dia futuro = pendente
+        status = 'pendente';
       }
+
+      if (status === 'presente') totais.presentes++;
+      else if (status === 'atrasado') totais.atrasados++;
+      else if (status === 'falta' || status === 'justificado') totais.faltas++;
+      else totais.pendentes++;
 
       dias[dataStr] = {
         data: dataStr,
@@ -416,5 +432,5 @@ export async function listarDiarioMensal(params: {
     return { alunoId: aluno.id, nome: aluno.nome, matricula: aluno.matricula, turma: aluno.turma, dias };
   });
 
-  return resultado;
+  return { alunos: alunosResult, totais };
 }

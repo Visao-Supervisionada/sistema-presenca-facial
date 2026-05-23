@@ -57,3 +57,15 @@ export interface PresencaMensalAluno {
   turma: string;
   dias: Record<string, PresencaDoDia>;
 }
+
+export interface TotaisMensais {
+  presentes: number;
+  atrasados: number;
+  faltas: number;
+  pendentes: number;
+}
+
+export interface RespostaDiarioMensal {
+  alunos: PresencaMensalAluno[];
+  totais: TotaisMensais;
+}
