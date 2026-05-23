@@ -9,6 +9,10 @@ import Recognition from '@/pages/Recognition';
 import Reports from '@/pages/Reports';
 import Horario from '@/pages/Horario';
 import DiarioDigital from '@/pages/DiarioDigital';
+import FrequenciaDigital from '@/pages/FrequenciaDigital';
+import ObjetosConhecimento from '@/pages/ObjetosConhecimento';
+import Avaliacoes from '@/pages/Avaliacoes';
+import NotasParciais from '@/pages/NotasParciais';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const estaAutenticado =
@@ -40,7 +44,15 @@ export default function App() {
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="diario" element={<DiarioDigital />} />
+
+          <Route path="diario">
+            <Route index element={<DiarioDigital />} />
+            <Route path="frequencia" element={<FrequenciaDigital />} />
+            <Route path="objetos-conhecimento" element={<ObjetosConhecimento />} />
+            <Route path="avaliacoes" element={<Avaliacoes />} />
+            <Route path="notas-parciais" element={<NotasParciais />} />
+          </Route>
+
           <Route path="horario" element={<Horario />} />
           <Route path="registration" element={<Registration />} />
           <Route path="recognition" element={<Recognition />} />
