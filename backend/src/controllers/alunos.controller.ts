@@ -5,6 +5,8 @@ import {
   criarAluno,
   excluirAlunoPorId,
   listarAlunos,
+  listarProfessores,
+  listarTurmas,
 } from '../services/alunos.service';
 
 import {
@@ -117,6 +119,32 @@ export const excluirAlunoController: RequestHandler = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erro ao excluir aluno.',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+export const listarTurmasController: RequestHandler = async (_req, res) => {
+  try {
+    const turmas = await listarTurmas();
+    res.json({ success: true, total: turmas.length, turmas });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao listar turmas.',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+export const listarProfessoresController: RequestHandler = async (_req, res) => {
+  try {
+    const professores = await listarProfessores();
+    res.json({ success: true, total: professores.length, professores });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao listar professores.',
       error: error instanceof Error ? error.message : String(error),
     });
   }
