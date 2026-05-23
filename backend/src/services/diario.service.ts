@@ -43,9 +43,25 @@ function horaParaMinutos(hora: string) {
   return horas * 60 + minutos;
 }
 
-function calcularStatusEntrada(horaReal: string, horaLimite: string): StatusEntrada {
+function calcularHoraLimiteComTolerancia(horaEntrada: string): string {
+  const tolerancia = parseInt(process.env.TOLERANCIA_ATRASO_MINUTOS || '15', 10);
+  const [horasTexto, minutosTexto] = horaEntrada.split(':');
+  const totalMinutos = Number(horasTexto) * 60 + Number(minutosTexto) + tolerancia;
+  const horas = Math.floor(totalMinutos / 60);
+  const minutos = totalMinutos % 60;
+  return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
+}
+
+function calcularStatusEntrada(horaReal: string, horaLimite: string, horaEntrada?: string): StatusEntrada {
   const minutosReais = horaParaMinutos(horaReal);
-  const minutosLimite = horaParaMinutos(horaLimite);
+
+  const limiteEfetivo = horaLimite && horaLimite.length >= 4
+    ? horaLimite
+    : horaEntrada
+      ? calcularHoraLimiteComTolerancia(horaEntrada)
+      : horaReal;
+
+  const minutosLimite = horaParaMinutos(limiteEfetivo);
 
   if (minutosReais <= minutosLimite) {
     return 'presente';
@@ -127,6 +143,7 @@ export async function confirmarEntrada(params: {
   const statusEntrada = calcularStatusEntrada(
     horaEntradaReal.slice(0, 5),
     horario.horaLimiteEntrada,
+    horario.horaEntrada,
   );
 
   const registro: RegistroDiario = {

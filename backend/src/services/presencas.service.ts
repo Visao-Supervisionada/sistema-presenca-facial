@@ -1,5 +1,6 @@
 import { db } from '../config/firebase';
 import { buscarAlunoPorMatricula } from './alunos.service';
+import { confirmarEntrada as confirmarEntradaDiario, confirmarSaida as confirmarSaidaDiario } from './diario.service';
 import { Presenca } from '../types/presenca.types';
 
 const colecaoPresencas = db.collection('presencas');
@@ -57,6 +58,13 @@ export async function registrarPresencaPorMatricula(params: {
 
     await referencia.set(novaPresenca);
 
+    confirmarEntradaDiario({
+      matricula: aluno.matricula,
+      data: dataHoje,
+      origem: 'reconhecimento_facial',
+      confidence: params.confidence,
+    }).catch(() => {});
+
     return {
       acao: 'entrada',
       presenca: novaPresenca,
@@ -86,6 +94,13 @@ export async function registrarPresencaPorMatricula(params: {
       status: presencaAtualizada.status,
       confidence: presencaAtualizada.confidence,
     });
+
+    confirmarSaidaDiario({
+      matricula: aluno.matricula,
+      data: dataHoje,
+      origem: 'reconhecimento_facial',
+      confidence: params.confidence,
+    }).catch(() => {});
 
     return {
       acao: 'saida',
