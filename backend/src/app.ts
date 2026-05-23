@@ -9,6 +9,9 @@ import diarioRoutes from './routes/diario.routes';
 import sincronizacaoRoutes from './routes/sincronizacao.routes';
 import reconhecimentoRoutes from './routes/reconhecimento.routes';
 import componentesRoutes from './routes/componentes.routes';
+import objetoRoutes from './routes/objeto.routes';
+import avaliacaoRoutes from './routes/avaliacao.routes';
+import notaRoutes from './routes/nota.routes';
 
 dotenv.config();
 
@@ -46,5 +49,8 @@ app.use('/api/diario', diarioRoutes);
 app.use('/api/sincronizacao', sincronizacaoRoutes);
 app.use('/api/reconhecimento', reconhecimentoRoutes);
 app.use('/api/componentes', componentesRoutes);
+app.use('/api/objetos-conhecimento', objetoRoutes);
+app.use('/api/avaliacoes', avaliacaoRoutes);
+app.use('/api/notas', notaRoutes);
 
 export default app;

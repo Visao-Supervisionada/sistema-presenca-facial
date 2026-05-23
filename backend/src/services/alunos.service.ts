@@ -76,3 +76,18 @@ export async function listarAlunosPorTurma(turma: string): Promise<Aluno[]> {
 
   return snapshot.docs.map((documento) => documento.data() as Aluno);
 }
+
+export async function listarTurmas(): Promise<string[]> {
+  const snapshot = await colecaoAlunos.where('ativo', '==', true).get();
+  const turmas = new Set<string>();
+  for (const doc of snapshot.docs) {
+    const aluno = doc.data() as Aluno;
+    if (aluno.turma) turmas.add(aluno.turma);
+  }
+  return [...turmas].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
+export async function listarProfessores(): Promise<Aluno[]> {
+  const snapshot = await colecaoAlunos.where('perfil', '==', 'professor').get();
+  return snapshot.docs.map((d) => d.data() as Aluno).filter((a) => a.ativo);
+}
