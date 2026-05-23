@@ -8,6 +8,7 @@ import horariosRoutes from './routes/horarios.routes';
 import diarioRoutes from './routes/diario.routes';
 import sincronizacaoRoutes from './routes/sincronizacao.routes';
 import reconhecimentoRoutes from './routes/reconhecimento.routes';
+import componentesRoutes from './routes/componentes.routes';
 
 dotenv.config();
 
@@ -44,5 +45,6 @@ app.use('/api/horarios', horariosRoutes);
 app.use('/api/diario', diarioRoutes);
 app.use('/api/sincronizacao', sincronizacaoRoutes);
 app.use('/api/reconhecimento', reconhecimentoRoutes);
+app.use('/api/componentes', componentesRoutes);
 
 export default app;
