@@ -85,7 +85,7 @@ export async function listarAlunosController(_req: Request, res: Response) {
 
 export const excluirAlunoController: RequestHandler = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params['id'] ?? '');
 
     const aluno = await buscarAlunoPorId(id);
 
