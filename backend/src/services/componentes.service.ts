@@ -6,11 +6,12 @@ const colecaoComponentes = db.collection('componentes_curriculares');
 export async function listarComponentesPorTurma(turma: string): Promise<ComponenteCurricular[]> {
   const snapshot = await colecaoComponentes
     .where('turma', '==', String(turma).trim())
-    .where('ativo', '==', true)
-    .orderBy('nome', 'asc')
     .get();
 
-  return snapshot.docs.map((doc) => doc.data() as ComponenteCurricular);
+  return snapshot.docs
+    .map((doc) => doc.data() as ComponenteCurricular)
+    .filter((c) => c.ativo)
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 }
 
 export async function criarComponente(dados: CriarComponenteDTO): Promise<ComponenteCurricular> {
