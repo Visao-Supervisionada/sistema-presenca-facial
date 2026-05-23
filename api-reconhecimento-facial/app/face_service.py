@@ -7,7 +7,7 @@ from insightface.app import FaceAnalysis
 
 class FaceService:
     def __init__(self) -> None:
-        self.model_name = "buffalo_l"
+        self.model_name = "buffalo_s"
         self.model_root = "/root/.insightface"
         self.model_classifier_path = "/app/modelos/classificador_match_embeddings_final.pkl"
 
@@ -18,7 +18,7 @@ class FaceService:
 
         # CPU
         # para GPU use ctx_id=0
-        self.app.prepare(ctx_id=-1, det_size=(640, 640))
+        self.app.prepare(ctx_id=0, det_size=(320, 320))
 
         self.match_classifier = None
         self.threshold_balanceado = 0.60
@@ -65,7 +65,7 @@ class FaceService:
         embedding = face.embedding
         embedding = embedding / np.linalg.norm(embedding)
 
-        return embedding.astype(float).tolist()
+        return embedding.astype(np.float32)
 
     def cosine_similarity(self, emb1: list[float], emb2: list[float]) -> float:
         a = np.array(emb1, dtype=float)
@@ -150,7 +150,7 @@ class FaceService:
 
                 cosine_score = self.cosine_similarity(query_embedding, stored_embedding)
 
-                if cosine_score < min_cosine_threshold:
+                if cosine_score < 0.35:
                     continue
 
                 _, model_score = self.compare_embeddings(
@@ -230,7 +230,7 @@ class FaceService:
         for face in faces:
             embedding = face.embedding
             embedding = embedding / np.linalg.norm(embedding)
-            embedding = embedding.astype(float).tolist()
+            embedding = embedding.astype(np.float32)
 
             person, model_score, cosine_score = self.find_best_match(
                 query_embedding=embedding,

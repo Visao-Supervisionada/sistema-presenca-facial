@@ -207,7 +207,7 @@ export default function Recognition() {
         <Card className="flex flex-col overflow-hidden lg:col-span-2">
           <CardContent
             ref={areaCameraRef}
-            className="relative aspect-[4/3] w-full overflow-hidden bg-black p-0"
+            className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-b-xl bg-black p-0"
           >
             <Webcam
               audio={false}
@@ -221,7 +221,7 @@ export default function Recognition() {
                 height: ALTURA_CAPTURA,
                 facingMode: 'user',
               }}
-              className="h-full w-full object-contain"
+              className="h-full max-h-full w-full max-w-full object-contain"
             />
 
             {rostosReconhecidos.map((rosto) => {

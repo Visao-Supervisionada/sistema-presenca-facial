@@ -22,7 +22,8 @@ O sistema permite:
 Na raiz do projeto:
 
 ```bash
-docker compose up --build
+
+
 ````
 
 Depois acesse:

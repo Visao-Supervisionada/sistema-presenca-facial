@@ -23,7 +23,7 @@ COPY app ./app
 COPY modelos ./modelos
 
 RUN mkdir -p /app/data
-RUN mkdir -p /root/.insightface/models/buffalo_l
+RUN mkdir -p /root/.insightface/models/buffalo_s
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install --upgrade setuptools wheel
@@ -36,7 +36,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     numpy==1.26.4 \
     pillow==10.4.0 \
     opencv-python-headless==4.10.0.84 \
-    onnxruntime==1.19.2 \
+    onnxruntime-gpu==1.19.2 \
     scipy==1.14.1 \
     scikit-learn==1.5.2 \
     easydict==1.13 \
@@ -49,10 +49,10 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install --no-build-isolation insightface==0.7.3
 
 RUN curl -L \
-    https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip \
-    -o /tmp/buffalo_l.zip \
-    && unzip /tmp/buffalo_l.zip -d /root/.insightface/models/buffalo_l \
-    && rm /tmp/buffalo_l.zip
+    https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_s.zip \
+    -o /tmp/buffalo_s.zip \
+    && unzip /tmp/buffalo_s.zip -d /root/.insightface/models/buffalo_s \
+    && rm /tmp/buffalo_s.zip
 
 EXPOSE 8000
 
