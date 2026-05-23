@@ -155,7 +155,7 @@ export const listarDiarioMensalController: RequestHandler = async (req, res) => 
       componente: componente ? String(componente) : undefined,
     });
 
-    res.json({ success: true, total: resultado.length, alunos: resultado });
+    res.json({ success: true, total: resultado.alunos.length, alunos: resultado.alunos, totais: resultado.totais });
   } catch (error) {
     res.status(500).json({
       success: false,
