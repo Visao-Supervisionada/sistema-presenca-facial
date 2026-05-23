@@ -93,24 +93,31 @@ export default function FrequenciaDigital() {
     data: string;
     justificativa: string;
   }) {
-    await justificarFalta({ ...p, componente: componente || undefined });
-    toast.success('Justificativa salva.');
-    setAlunos((prev) =>
-      prev.map((a) => {
-        if (a.alunoId !== p.alunoId) return a;
-        return {
-          ...a,
-          dias: {
-            ...a.dias,
-            [p.data]: {
-              ...a.dias[p.data],
-              status: 'justificado' as const,
-              justificativa: p.justificativa,
+    try {
+      await justificarFalta({ ...p, componente: componente || undefined });
+      toast.success('Justificativa salva.');
+      setAlunos((prev) =>
+        prev.map((a) => {
+          if (a.alunoId !== p.alunoId) return a;
+          return {
+            ...a,
+            dias: {
+              ...a.dias,
+              [p.data]: {
+                ...a.dias[p.data],
+                status: 'justificado' as const,
+                justificativa: p.justificativa,
+              },
             },
-          },
-        };
-      }),
-    );
+          };
+        }),
+      );
+    } catch (error) {
+      toast.error('Erro ao salvar justificativa.', {
+        description: error instanceof Error ? error.message : '',
+      });
+      throw error;
+    }
   }
 
   const nomeMes = MESES[mes - 1];
