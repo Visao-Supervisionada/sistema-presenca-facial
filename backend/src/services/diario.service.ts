@@ -333,14 +333,12 @@ export async function justificarFalta(params: {
 
   const snapshotDiario = await colecaoDiario
     .where('alunoId', '==', params.alunoId)
-    .where('data', '==', params.data)
-    .limit(1)
     .get();
 
-  const statusJustificado: StatusPresencaMensal = 'justificado';
+  const docDiario = snapshotDiario.docs.find((d) => d.data().data === params.data);
 
-  if (!snapshotDiario.empty) {
-    await snapshotDiario.docs[0].ref.update({ statusEntrada: statusJustificado, atualizadoEm: timestampServidor() });
+  if (docDiario) {
+    await docDiario.ref.update({ statusEntrada: 'justificado', atualizadoEm: timestampServidor() });
   }
 
   return registroJustificativa;
