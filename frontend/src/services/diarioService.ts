@@ -160,7 +160,12 @@ export async function listarDiarioMensal(params: {
     throw new Error(resultado.message || 'Erro ao listar diário mensal.');
   }
 
-  return resultado as { success: boolean; total: number; alunos: PresencaMensalAluno[] };
+  return resultado as {
+    success: boolean;
+    total: number;
+    alunos: PresencaMensalAluno[];
+    totais: { presentes: number; atrasados: number; faltas: number; pendentes: number };
+  };
 }
 
 export async function justificarFalta(params: {
