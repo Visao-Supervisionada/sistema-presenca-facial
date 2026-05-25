@@ -60,7 +60,7 @@ export default function Recognition() {
         const novosRostos: RegistroTela[] = resposta.registros.map((registro) => {
           const reconhecimento = registro.reconhecimento;
 
-          const reconhecimentoValido = registro.acao === 'entrada' || registro.acao === 'saida' || registro.acao === 'ja_finalizada' || registro.acao === 'reconhecido';
+          const reconhecimentoValido = registro.acao === 'entrada' || registro.acao === 'saida' || registro.acao === 'ja_finalizada' || registro.acao === 'reconhecido' || registro.acao === 'em_aula';
 
           const nomeReconhecido =
             registro.aluno?.nome ||
@@ -142,6 +142,7 @@ export default function Recognition() {
     if (acao === 'entrada') return 'Entrada registrada';
     if (acao === 'saida') return 'Saída registrada';
     if (acao === 'ja_finalizada') return 'Presença já finalizada';
+    if (acao === 'em_aula') return 'Em aula — saída fora da janela';
     if (acao === 'aluno_nao_encontrado') return 'Aluno não encontrado';
     if (acao === 'desconhecido') return 'Desconhecido';
 

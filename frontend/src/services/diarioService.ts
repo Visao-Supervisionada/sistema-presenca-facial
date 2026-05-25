@@ -205,3 +205,19 @@ export async function fecharDia(params: { turmaId: string; data: string }) {
 
   return resultado;
 }
+
+export async function fecharTurno(params: { turno: 'matutino' | 'vespertino'; data: string }) {
+  const resposta = await fetch(`${BACKEND_URL}/api/diario/fechar-turno`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  const resultado = await resposta.json();
+
+  if (!resposta.ok) {
+    throw new Error(resultado.message || 'Erro ao fechar turno.');
+  }
+
+  return resultado as { success: boolean; turno: string; processados: number; faltas: number };
+}

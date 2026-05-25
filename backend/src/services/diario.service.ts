@@ -9,9 +9,11 @@ import {
   StatusPresencaMensal,
   TotaisMensais,
 } from '../types/diario.types';
-import { DiaSemana } from '../types/horario.types';
+import { DiaSemana, Horario } from '../types/horario.types';
 import { buscarAlunoPorMatricula, listarAlunosPorTurma } from './alunos.service';
 import { buscarHorarioPorMatriculaEDia } from './horarios.service';
+
+const colecaoHorarios = db.collection('horarios');
 
 const colecaoDiario = db.collection('diario');
 const colecaoJustificativas = db.collection('justificativas');
@@ -433,4 +435,63 @@ export async function listarDiarioMensal(params: {
   });
 
   return { alunos: alunosResult, totais };
+}
+
+export async function fecharDiaPorTurno(params: {
+  turno: 'matutino' | 'vespertino';
+  data: string;
+}): Promise<{ processados: number; faltas: number }> {
+  const { turno, data } = params;
+  const diaSemana = obterDiaSemana(data);
+
+  const snapshotHorarios = await colecaoHorarios
+    .where('diaSemana', '==', diaSemana)
+    .where('ativo', '==', true)
+    .get();
+
+  const horariosPorMatricula: Record<string, Horario> = {};
+  for (const doc of snapshotHorarios.docs) {
+    const h = doc.data() as Horario;
+    const ehMatutino = h.horaEntrada < '12:00';
+    if (turno === 'matutino' && ehMatutino) horariosPorMatricula[h.matricula] = h;
+    if (turno === 'vespertino' && !ehMatutino) horariosPorMatricula[h.matricula] = h;
+  }
+
+  const matriculas = Object.keys(horariosPorMatricula);
+  let faltas = 0;
+
+  for (const matricula of matriculas) {
+    const aluno = await buscarAlunoPorMatricula(matricula);
+    if (!aluno) continue;
+
+    const id = criarIdDiario(aluno.matricula, data);
+    const documento = await colecaoDiario.doc(id).get();
+
+    if (!documento.exists) {
+      const horario = horariosPorMatricula[matricula];
+
+      const registroFalta: RegistroDiario = {
+        id,
+        data,
+        alunoId: aluno.id,
+        nome: aluno.nome,
+        matricula: aluno.matricula,
+        turma: aluno.turma,
+        horaEntradaPrevista: horario.horaEntrada,
+        horaLimiteEntrada: horario.horaLimiteEntrada,
+        horaSaidaPrevista: horario.horaSaida,
+        horaEntradaReal: null,
+        horaSaidaReal: null,
+        statusEntrada: 'ausente',
+        statusSaida: 'pendente',
+        criadoEm: timestampServidor(),
+        atualizadoEm: timestampServidor(),
+      };
+
+      await colecaoDiario.doc(id).set(registroFalta, { merge: true });
+      faltas++;
+    }
+  }
+
+  return { processados: matriculas.length, faltas };
 }
