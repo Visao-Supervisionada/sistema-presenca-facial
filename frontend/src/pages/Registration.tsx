@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
-import { Camera, CheckCircle2, Loader2, RotateCcw, Save, Trash2, User, X } from "lucide-react";
+import { Camera, CheckCircle2, Loader2, RotateCcw, Save, Trash2, Upload, User, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,19 @@ const INSTRUCOES_FOTOS = [
   { titulo: "Foto 5 — Inclinado para cima", descricao: "Incline levemente a cabeça para cima" },
 ];
 
+type Modo = "captura" | "upload";
+
+function lerArquivoComoBase64(arquivo: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(arquivo);
+  });
+}
+
 export default function Registration() {
+  const [modo, setModo] = useState<Modo>("captura");
   const [imagensCapturadas, setImagensCapturadas] = useState<(string | null)[]>(
     Array(TOTAL_FOTOS).fill(null)
   );
@@ -50,9 +62,15 @@ export default function Registration() {
   });
 
   const webcamRef = useRef<Webcam>(null);
+  const inputUploadRef = useRef<HTMLInputElement>(null);
+  const inputSlotRef = useRef<HTMLInputElement>(null);
+  const slotParaSubstituir = useRef<number | null>(null);
 
   const todasCapturadas = imagensCapturadas.every((img) => img !== null);
   const proximaFotoVazia = imagensCapturadas.findIndex((img) => img === null);
+  const totalCapturadas = imagensCapturadas.filter((img) => img !== null).length;
+
+  useEffect(() => { carregarAlunos(); }, []);
 
   async function carregarAlunos() {
     try {
@@ -68,17 +86,16 @@ export default function Registration() {
     }
   }
 
-  useEffect(() => {
-    carregarAlunos();
-  }, []);
+  function trocarModo(novoModo: Modo) {
+    setModo(novoModo);
+    reiniciarFotos();
+  }
+
+  // ── Captura (webcam) ──────────────────────────────────────────────────────
 
   const capturarImagem = useCallback(() => {
     const imagem = webcamRef.current?.getScreenshot();
-
-    if (!imagem) {
-      toast.error("Não foi possível capturar a imagem.");
-      return;
-    }
+    if (!imagem) { toast.error("Não foi possível capturar a imagem."); return; }
 
     setImagensCapturadas((prev) => {
       const novas = [...prev];
@@ -100,14 +117,66 @@ export default function Registration() {
     setCapturando(true);
   }
 
-  function refazerFoto(indice: number) {
+  function refazerFotoCaptura(indice: number) {
     setFotoAtual(indice);
     setCapturando(true);
   }
 
-  function cancelarCaptura() {
-    setCapturando(false);
+  function cancelarCaptura() { setCapturando(false); }
+
+  // ── Upload ────────────────────────────────────────────────────────────────
+
+  async function processarArquivos(arquivos: FileList | null, slotInicial = 0) {
+    if (!arquivos || arquivos.length === 0) return;
+
+    const lista = Array.from(arquivos).slice(0, TOTAL_FOTOS - slotInicial);
+    const bases64 = await Promise.all(lista.map(lerArquivoComoBase64));
+
+    setImagensCapturadas((prev) => {
+      const novas = [...prev];
+      bases64.forEach((b64, i) => { novas[slotInicial + i] = b64; });
+      return novas;
+    });
   }
+
+  function abrirUploadGeral() {
+    inputUploadRef.current?.click();
+  }
+
+  function substituirSlot(indice: number) {
+    slotParaSubstituir.current = indice;
+    inputSlotRef.current?.click();
+  }
+
+  async function onUploadGeral(e: React.ChangeEvent<HTMLInputElement>) {
+    await processarArquivos(e.target.files, 0);
+    e.target.value = "";
+  }
+
+  async function onUploadSlot(e: React.ChangeEvent<HTMLInputElement>) {
+    const slot = slotParaSubstituir.current;
+    if (slot === null) return;
+    const arquivo = e.target.files?.[0];
+    if (!arquivo) return;
+    const b64 = await lerArquivoComoBase64(arquivo);
+    setImagensCapturadas((prev) => {
+      const novas = [...prev];
+      novas[slot] = b64;
+      return novas;
+    });
+    slotParaSubstituir.current = null;
+    e.target.value = "";
+  }
+
+  function removerFotoSlot(indice: number) {
+    setImagensCapturadas((prev) => {
+      const novas = [...prev];
+      novas[indice] = null;
+      return novas;
+    });
+  }
+
+  // ── Geral ─────────────────────────────────────────────────────────────────
 
   function reiniciarFotos() {
     setImagensCapturadas(Array(TOTAL_FOTOS).fill(null));
@@ -119,7 +188,7 @@ export default function Registration() {
     evento.preventDefault();
 
     if (!todasCapturadas) {
-      toast.error(`Capture as ${TOTAL_FOTOS} fotos antes de salvar.`);
+      toast.error(`Adicione as ${TOTAL_FOTOS} fotos antes de salvar.`);
       return;
     }
 
@@ -154,7 +223,6 @@ export default function Registration() {
     const confirmou = window.confirm(
       `Deseja excluir ${aluno.nome}? Isso também remove o cadastro facial da API.`
     );
-
     if (!confirmou) return;
 
     try {
@@ -173,18 +241,31 @@ export default function Registration() {
     }
   }
 
-  const totalCapturadas = imagensCapturadas.filter((img) => img !== null).length;
-
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-          Cadastro de Usuários
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Cadastro de Usuários</h1>
         <p className="text-gray-500">
-          Cadastre alunos e capture a biometria facial com 5 fotos em posições diferentes.
+          Cadastre alunos e registre a biometria facial com 5 fotos em posições diferentes.
         </p>
       </div>
+
+      {/* inputs de arquivo ocultos */}
+      <input
+        ref={inputUploadRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={onUploadGeral}
+      />
+      <input
+        ref={inputSlotRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={onUploadSlot}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Dados pessoais */}
@@ -197,9 +278,7 @@ export default function Registration() {
           <form onSubmit={salvarCadastro}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700" htmlFor="nome">
-                  Nome completo
-                </label>
+                <label className="text-sm font-medium text-gray-700" htmlFor="nome">Nome completo</label>
                 <Input
                   id="nome"
                   placeholder="Ex: João da Silva"
@@ -211,9 +290,7 @@ export default function Registration() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700" htmlFor="perfil">
-                    Perfil
-                  </label>
+                  <label className="text-sm font-medium text-gray-700" htmlFor="perfil">Perfil</label>
                   <select
                     id="perfil"
                     className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -227,9 +304,7 @@ export default function Registration() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700" htmlFor="matricula">
-                    Matrícula
-                  </label>
+                  <label className="text-sm font-medium text-gray-700" htmlFor="matricula">Matrícula</label>
                   <Input
                     id="matricula"
                     placeholder="Ex: 2026001"
@@ -242,9 +317,7 @@ export default function Registration() {
 
               {dadosFormulario.perfil === "aluno" && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700" htmlFor="turma">
-                    Turma
-                  </label>
+                  <label className="text-sm font-medium text-gray-700" htmlFor="turma">Turma</label>
                   <Input
                     id="turma"
                     placeholder="Ex: 3º Ano A"
@@ -257,21 +330,12 @@ export default function Registration() {
             </CardContent>
 
             <CardFooter className="mt-6 border-t border-gray-100 bg-gray-50 py-4">
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={!todasCapturadas || salvando}
-              >
+              <Button type="submit" className="w-full" disabled={!todasCapturadas || salvando}>
                 {salvando ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>
                 ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Salvar Cadastro
-                    {todasCapturadas ? "" : ` (${totalCapturadas}/${TOTAL_FOTOS} fotos)`}
+                  <><Save className="mr-2 h-4 w-4" />
+                    Salvar Cadastro{todasCapturadas ? "" : ` (${totalCapturadas}/${TOTAL_FOTOS} fotos)`}
                   </>
                 )}
               </Button>
@@ -284,108 +348,156 @@ export default function Registration() {
           <CardHeader>
             <CardTitle>Biometria Facial</CardTitle>
             <CardDescription>
-              Capture {TOTAL_FOTOS} fotos em posições diferentes para melhorar o reconhecimento.
+              {TOTAL_FOTOS} fotos em ângulos diferentes melhoram a precisão do reconhecimento.
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
-            {/* Câmera ou placeholder */}
-            <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-gray-300 bg-gray-100">
-              {!capturando && (
-                <>
-                  {totalCapturadas === 0 && (
-                    <div className="p-6 text-center">
-                      <User className="mx-auto mb-4 h-16 w-16 text-gray-400" />
-                      <p className="mb-4 text-sm text-gray-500">
-                        Nenhuma foto capturada ainda
-                      </p>
-                      <Button type="button" onClick={iniciarCaptura} variante="contorno">
-                        <Camera className="mr-2 h-4 w-4" />
-                        Iniciar Captura
-                      </Button>
-                    </div>
-                  )}
-
-                  {totalCapturadas > 0 && totalCapturadas < TOTAL_FOTOS && (
-                    <div className="p-6 text-center">
-                      <div className="mb-3 flex items-center justify-center gap-2 text-green-600">
-                        <CheckCircle2 className="h-8 w-8" />
-                        <span className="text-2xl font-bold">{totalCapturadas}/{TOTAL_FOTOS}</span>
-                      </div>
-                      <p className="mb-4 text-sm text-gray-500">
-                        Fotos capturadas. Continue para terminar.
-                      </p>
-                      <Button type="button" onClick={iniciarCaptura} variante="contorno">
-                        <Camera className="mr-2 h-4 w-4" />
-                        Continuar Captura
-                      </Button>
-                    </div>
-                  )}
-
-                  {todasCapturadas && (
-                    <div className="p-6 text-center">
-                      <div className="mb-3 flex items-center justify-center gap-2 text-green-600">
-                        <CheckCircle2 className="h-10 w-10" />
-                      </div>
-                      <p className="mb-1 text-sm font-semibold text-green-700">
-                        Todas as {TOTAL_FOTOS} fotos capturadas!
-                      </p>
-                      <p className="mb-4 text-xs text-gray-500">
-                        Preencha os dados e clique em Salvar Cadastro.
-                      </p>
-                      <Button
-                        type="button"
-                        onClick={reiniciarFotos}
-                        variante="contorno"
-                        className="text-xs"
-                      >
-                        <RotateCcw className="mr-2 h-3 w-3" />
-                        Refazer todas as fotos
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {capturando && (
-                <div className="relative h-full w-full">
-                  <Webcam
-                    audio={false}
-                    ref={webcamRef}
-                    screenshotFormat="image/jpeg"
-                    screenshotQuality={0.75}
-                    videoConstraints={{ width: 640, height: 480, facingMode: "user" }}
-                    className="h-full w-full object-cover"
-                  />
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <div className="h-64 w-48 rounded-[100%] border-2 border-green-500/60 shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
-                  </div>
-
-                  {/* Instrução atual sobreposta */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-4 py-3 text-center text-white">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-green-400">
-                      {INSTRUCOES_FOTOS[fotoAtual]?.titulo}
-                    </p>
-                    <p className="text-sm">{INSTRUCOES_FOTOS[fotoAtual]?.descricao}</p>
-                  </div>
-                </div>
-              )}
+            {/* Toggle modo */}
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-gray-200 bg-gray-50 p-1">
+              <button
+                type="button"
+                onClick={() => trocarModo("captura")}
+                className={`flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors ${
+                  modo === "captura"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <Camera className="h-4 w-4" />
+                Capturar pela câmera
+              </button>
+              <button
+                type="button"
+                onClick={() => trocarModo("upload")}
+                className={`flex items-center justify-center gap-2 rounded-md py-2 text-sm font-medium transition-colors ${
+                  modo === "upload"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <Upload className="h-4 w-4" />
+                Fazer upload
+              </button>
             </div>
 
-            {/* Botões de captura */}
-            {capturando && (
-              <div className="flex gap-3">
-                <Button type="button" onClick={capturarImagem} className="flex-1">
-                  <Camera className="mr-2 h-4 w-4" />
-                  Capturar Foto {fotoAtual + 1}
-                </Button>
-                <Button type="button" onClick={cancelarCaptura} variante="contorno" tamanho="icone">
-                  <X className="h-4 w-4" />
+            {/* ── Modo Captura ── */}
+            {modo === "captura" && (
+              <>
+                <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-gray-300 bg-gray-100">
+                  {!capturando && (
+                    <>
+                      {totalCapturadas === 0 && (
+                        <div className="p-6 text-center">
+                          <User className="mx-auto mb-4 h-16 w-16 text-gray-400" />
+                          <p className="mb-4 text-sm text-gray-500">Nenhuma foto capturada ainda</p>
+                          <Button type="button" onClick={iniciarCaptura} variante="contorno">
+                            <Camera className="mr-2 h-4 w-4" />Iniciar Captura
+                          </Button>
+                        </div>
+                      )}
+                      {totalCapturadas > 0 && totalCapturadas < TOTAL_FOTOS && (
+                        <div className="p-6 text-center">
+                          <div className="mb-3 flex items-center justify-center gap-2 text-green-600">
+                            <CheckCircle2 className="h-8 w-8" />
+                            <span className="text-2xl font-bold">{totalCapturadas}/{TOTAL_FOTOS}</span>
+                          </div>
+                          <p className="mb-4 text-sm text-gray-500">Fotos capturadas. Continue para terminar.</p>
+                          <Button type="button" onClick={iniciarCaptura} variante="contorno">
+                            <Camera className="mr-2 h-4 w-4" />Continuar Captura
+                          </Button>
+                        </div>
+                      )}
+                      {todasCapturadas && (
+                        <div className="p-6 text-center">
+                          <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-green-600" />
+                          <p className="mb-1 text-sm font-semibold text-green-700">
+                            Todas as {TOTAL_FOTOS} fotos capturadas!
+                          </p>
+                          <p className="mb-4 text-xs text-gray-500">
+                            Preencha os dados e clique em Salvar Cadastro.
+                          </p>
+                          <Button type="button" onClick={reiniciarFotos} variante="contorno" className="text-xs">
+                            <RotateCcw className="mr-2 h-3 w-3" />Refazer todas
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {capturando && (
+                    <div className="relative h-full w-full">
+                      <Webcam
+                        audio={false}
+                        ref={webcamRef}
+                        screenshotFormat="image/jpeg"
+                        screenshotQuality={0.75}
+                        videoConstraints={{ width: 640, height: 480, facingMode: "user" }}
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                        <div className="h-64 w-48 rounded-[100%] border-2 border-green-500/60 shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-4 py-3 text-center text-white">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-green-400">
+                          {INSTRUCOES_FOTOS[fotoAtual]?.titulo}
+                        </p>
+                        <p className="text-sm">{INSTRUCOES_FOTOS[fotoAtual]?.descricao}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {capturando && (
+                  <div className="flex gap-3">
+                    <Button type="button" onClick={capturarImagem} className="flex-1">
+                      <Camera className="mr-2 h-4 w-4" />Capturar Foto {fotoAtual + 1}
+                    </Button>
+                    <Button type="button" onClick={cancelarCaptura} variante="contorno" tamanho="icone">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ── Modo Upload ── */}
+            {modo === "upload" && !todasCapturadas && (
+              <div
+                onClick={abrirUploadGeral}
+                className="flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 transition-colors hover:border-green-400 hover:bg-green-50"
+              >
+                <Upload className="mb-3 h-12 w-12 text-gray-400" />
+                <p className="mb-1 text-sm font-medium text-gray-700">
+                  Clique para selecionar as fotos
+                </p>
+                <p className="text-xs text-gray-500">
+                  Selecione até {TOTAL_FOTOS} imagens de uma vez (JPG, PNG, WEBP)
+                </p>
+                {totalCapturadas > 0 && (
+                  <p className="mt-2 text-xs font-medium text-green-600">
+                    {totalCapturadas} de {TOTAL_FOTOS} adicionadas
+                  </p>
+                )}
+              </div>
+            )}
+
+            {modo === "upload" && todasCapturadas && (
+              <div className="flex aspect-[4/3] w-full flex-col items-center justify-center rounded-xl border-2 border-green-300 bg-green-50">
+                <CheckCircle2 className="mb-3 h-10 w-10 text-green-600" />
+                <p className="mb-1 text-sm font-semibold text-green-700">
+                  Todas as {TOTAL_FOTOS} fotos adicionadas!
+                </p>
+                <p className="mb-4 text-xs text-gray-500">
+                  Preencha os dados e clique em Salvar Cadastro.
+                </p>
+                <Button type="button" onClick={reiniciarFotos} variante="contorno" className="text-xs">
+                  <RotateCcw className="mr-2 h-3 w-3" />Limpar todas
                 </Button>
               </div>
             )}
 
-            {/* Miniaturas das 5 fotos */}
+            {/* Grid de miniaturas (igual nos dois modos) */}
             <div className="grid grid-cols-5 gap-2">
               {imagensCapturadas.map((imagem, indice) => (
                 <div key={indice} className="group relative aspect-square">
@@ -399,11 +511,7 @@ export default function Registration() {
                     } bg-gray-100`}
                   >
                     {imagem ? (
-                      <img
-                        src={imagem}
-                        alt={`Foto ${indice + 1}`}
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={imagem} alt={`Foto ${indice + 1}`} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full flex-col items-center justify-center">
                         <span className="text-xs font-medium text-gray-400">{indice + 1}</span>
@@ -411,22 +519,54 @@ export default function Registration() {
                     )}
                   </div>
 
-                  {/* Ícone de check */}
                   {imagem && (
                     <div className="absolute -right-1 -top-1 rounded-full bg-green-500 p-0.5">
                       <CheckCircle2 className="h-3 w-3 text-white" />
                     </div>
                   )}
 
-                  {/* Botão de refazer ao passar o mouse */}
-                  {imagem && (
+                  {/* Hover: substituir (captura) ou substituir/remover (upload) */}
+                  {imagem && modo === "captura" && (
                     <button
                       type="button"
-                      onClick={() => refazerFoto(indice)}
+                      onClick={() => refazerFotoCaptura(indice)}
                       className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
                       title={`Refazer foto ${indice + 1}`}
                     >
                       <RotateCcw className="h-4 w-4 text-white" />
+                    </button>
+                  )}
+
+                  {imagem && modo === "upload" && (
+                    <div className="absolute inset-0 flex items-center justify-center gap-1 rounded-lg bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => substituirSlot(indice)}
+                        className="rounded p-1 hover:bg-white/20"
+                        title="Substituir foto"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 text-white" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removerFotoSlot(indice)}
+                        className="rounded p-1 hover:bg-white/20"
+                        title="Remover foto"
+                      >
+                        <X className="h-3.5 w-3.5 text-white" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Slot vazio no modo upload: clica para adicionar */}
+                  {!imagem && modo === "upload" && (
+                    <button
+                      type="button"
+                      onClick={() => substituirSlot(indice)}
+                      className="absolute inset-0 flex items-center justify-center rounded-lg opacity-0 transition-opacity group-hover:opacity-100 group-hover:bg-green-100"
+                      title={`Adicionar foto ${indice + 1}`}
+                    >
+                      <Upload className="h-4 w-4 text-green-600" />
                     </button>
                   )}
                 </div>
@@ -434,7 +574,9 @@ export default function Registration() {
             </div>
 
             <p className="text-center text-xs text-gray-500">
-              Dicas: boa iluminação, olhar para a câmera e evitar óculos escuros ou bonés.
+              {modo === "captura"
+                ? "Dicas: boa iluminação, olhar para a câmera e evitar óculos escuros ou bonés."
+                : "Use fotos em ângulos diferentes: frontal, esquerda, direita, cima e baixo."}
             </p>
           </CardContent>
         </Card>
@@ -444,16 +586,13 @@ export default function Registration() {
       <Card>
         <CardHeader>
           <CardTitle>Alunos cadastrados</CardTitle>
-          <CardDescription>
-            Exclua por aqui para remover também o cadastro facial da API.
-          </CardDescription>
+          <CardDescription>Exclua por aqui para remover também o cadastro facial da API.</CardDescription>
         </CardHeader>
 
         <CardContent>
           {carregandoAlunos ? (
             <div className="flex items-center justify-center py-10 text-gray-500">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Carregando alunos...
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />Carregando alunos...
             </div>
           ) : alunos.length === 0 ? (
             <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-500">
@@ -492,11 +631,7 @@ export default function Registration() {
                             disabled={excluindo}
                             onClick={() => removerAluno(aluno)}
                           >
-                            {excluindo ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="mr-2 h-4 w-4" />
-                            )}
+                            {excluindo ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
                             Excluir
                           </Button>
                         </td>
