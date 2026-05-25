@@ -46,6 +46,7 @@ export async function cadastrarAlunoController(req: Request, res: Response) {
       matricula: matriculaNormalizada,
       turma: turmaNormalizada,
       perfil,
+      turno: 'matutino', // Definir um valor padrão para turno, ou ajustar conforme necessário
       faceId: respostaFace.person.id,
     });
 

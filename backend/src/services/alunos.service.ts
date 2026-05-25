@@ -15,6 +15,7 @@ export async function criarAluno(dados: CriarAlunoDTO): Promise<Aluno> {
     nome: normalizarTexto(dados.nome),
     matricula: normalizarTexto(dados.matricula),
     turma: dados.turma ? normalizarTexto(dados.turma) : '',
+    turno: dados.turno,
     perfil: dados.perfil,
     faceId: dados.faceId || '',
     ativo: true,

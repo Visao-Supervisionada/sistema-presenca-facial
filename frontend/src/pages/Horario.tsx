@@ -158,7 +158,7 @@ export default function Horario() {
                 </label>
                 <Input
                   id="nome"
-                  placeholder="Ex: Felipe Barbosa"
+                  placeholder="nome do aluno"
                   value={formulario.nome}
                   onChange={(evento) =>
                     setFormulario({ ...formulario, nome: evento.target.value })
@@ -176,7 +176,7 @@ export default function Horario() {
                 </label>
                 <Input
                   id="matricula"
-                  placeholder="Ex: 21211312"
+                  placeholder="numero de matricula"
                   value={formulario.matricula}
                   onChange={(evento) =>
                     setFormulario({
@@ -197,7 +197,7 @@ export default function Horario() {
                 </label>
                 <Input
                   id="turma"
-                  placeholder="Ex: 3º Ano A"
+                  placeholder="turma do aluno"
                   value={formulario.turma}
                   onChange={(evento) =>
                     setFormulario({ ...formulario, turma: evento.target.value })
@@ -241,6 +241,7 @@ export default function Horario() {
                     Entrada
                   </label>
                   <Input
+                    className="text-center items-center justify-center text-xs "
                     id="horaEntrada"
                     type="time"
                     value={formulario.horaEntrada}
@@ -262,6 +263,7 @@ export default function Horario() {
                     Limite
                   </label>
                   <Input
+                  className="text-xs text-center items-center justify-center"
                     id="horaLimiteEntrada"
                     type="time"
                     value={formulario.horaLimiteEntrada}
@@ -283,6 +285,7 @@ export default function Horario() {
                     Saída
                   </label>
                   <Input
+                    className="text-xs text-center items-center justify-center"
                     id="horaSaida"
                     type="time"
                     value={formulario.horaSaida}

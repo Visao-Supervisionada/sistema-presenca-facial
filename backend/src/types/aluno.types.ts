@@ -2,6 +2,7 @@ export interface CriarAlunoDTO {
   nome: string;
   matricula: string;
   turma?: string;
+  turno: 'matutino' | 'vespertino' | 'noturno' | 'Tempo integral';
   perfil: 'aluno' | 'professor' | 'funcionario';
   faceId?: string;
 }
@@ -11,6 +12,7 @@ export interface Aluno {
   nome: string;
   matricula: string;
   turma: string;
+  turno: 'matutino' | 'vespertino' | 'noturno' | 'Tempo integral';
   perfil: 'aluno' | 'professor' | 'funcionario';
   faceId: string;
   ativo: boolean;

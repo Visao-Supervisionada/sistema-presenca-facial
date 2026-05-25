@@ -5,15 +5,18 @@ export interface Aluno {
   nome: string;
   matricula: string;
   turma: string;
+  turno: string;
   perfil: string;
   faceId?: string;
   ativo: boolean;
+  data: Date;
 }
 
 export interface DadosCadastroAluno {
   nome: string;
   matricula: string;
   turma: string;
+  turno: string;
   perfil: string;
   imagemBase64: string;
 }
@@ -48,6 +51,7 @@ export async function cadastrarAluno(dados: DadosCadastroAluno) {
   formulario.append('nome', dados.nome.trim());
   formulario.append('matricula', matriculaNormalizada);
   formulario.append('turma', dados.turma.trim());
+  formulario.append('turno', dados.turno.trim());
   formulario.append('perfil', dados.perfil.trim());
   formulario.append('file', arquivoImagem);
 

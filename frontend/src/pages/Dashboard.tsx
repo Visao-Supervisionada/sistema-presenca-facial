@@ -2,35 +2,45 @@ import { AlertTriangle, Clock, UserCheck, Users, UserX } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Aluno } from '../services/alunosService';
+import { useState, useEffect, use } from 'react';
+import { listarAlunos } from '@/services/alunosService';
 
-const reconhecimentosRecentes = [
-  {
-    id: 1,
-    nome: 'Felipe Barbosa',
-    perfil: 'Aluno',
-    turma: '3º Ano A',
-    horario: '07:55',
-    status: 'sucesso',
-  },
-  {
-    id: 2,
-    nome: 'Desconhecido',
-    perfil: '-',
-    turma: '-',
-    horario: '07:52',
-    status: 'erro',
-  },
-  {
-    id: 3,
-    nome: 'Ana Silva',
-    perfil: 'Aluno',
-    turma: '2º Ano A',
-    horario: '07:48',
-    status: 'sucesso',
-  },
-];
 
 export default function Dashboard() {
+
+  const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [presente, setPresente] = useState(0);
+  const [ausente, setAusente] = useState(0);
+  const [atraso, setAtraso] = useState(0);
+
+  useEffect(() => {
+    async function carregarAlunos() {
+      try {
+        const response = await listarAlunos();
+        setAlunos(response.alunos);
+      } catch (error) {
+        console.error('Erro ao buscar alunos:', error);
+      }
+    }
+
+    carregarAlunos();
+  }, []);
+
+  useEffect(() => {
+    const hoje = new Date();
+    const presentesHoje = alunos.filter(aluno => aluno.ativo === true && new Date(aluno.data).toLocaleDateString() === hoje.toLocaleDateString()).length; 
+    const ausentesHoje = alunos.filter(aluno => aluno.ativo === false && new Date(aluno.data).toDateString() === hoje.toDateString()).length;
+    const atrasosHoje = alunos.filter(aluno => aluno.ativo === true && new Date(aluno.data).toDateString() === hoje.toDateString() && new Date(aluno.data).getHours() > 8).length;
+
+    setPresente(presentesHoje);
+    setAusente(ausentesHoje);
+    setAtraso(atrasosHoje);
+  }, [alunos]);
+
+
+
+
   return (
     <div className="space-y-6">
       <div>
@@ -45,8 +55,8 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-green-700" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="mt-1 text-xs text-gray-500">Aguardando integração com backend</p>
+            <div className="text-2xl font-bold">{alunos.length}</div>
+            <p className="mt-1 text-xs text-gray-500">{alunos.length} alunos cadastrados</p>
           </CardContent>
         </Card>
 
@@ -56,8 +66,8 @@ export default function Dashboard() {
             <UserCheck className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">0</div>
-            <p className="mt-1 text-xs text-gray-500">Hoje</p>
+            <div className="text-2xl font-bold text-green-600">{presente}</div>
+            <p className="mt-1 text-xs text-gray-500">presentes hoje</p>
           </CardContent>
         </Card>
 
@@ -67,8 +77,8 @@ export default function Dashboard() {
             <UserX className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">0</div>
-            <p className="mt-1 text-xs text-gray-500">Hoje</p>
+            <div className="text-2xl font-bold text-red-600">{ausente}</div>
+            <p className="mt-1 text-xs text-gray-500">ausentes hoje</p>
           </CardContent>
         </Card>
 
@@ -78,8 +88,8 @@ export default function Dashboard() {
             <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">0</div>
-            <p className="mt-1 text-xs text-gray-500">Hoje</p>
+            <div className="text-2xl font-bold text-yellow-600">{atraso}</div>
+            <p className="mt-1 text-xs text-gray-500">atrasos hoje</p>
           </CardContent>
         </Card>
       </div>
@@ -97,20 +107,22 @@ export default function Dashboard() {
                   <th className="px-4 py-3">Nome</th>
                   <th className="px-4 py-3">Perfil</th>
                   <th className="px-4 py-3">Turma</th>
+                  <th className="px-4 py-3">Turno</th>
                   <th className="px-4 py-3">Horário</th>
                   <th className="px-4 py-3">Status</th>
                 </tr>
               </thead>
 
               <tbody>
-                {reconhecimentosRecentes.map((registro) => (
+                {alunos.map((registro) => (
                   <tr key={registro.id} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-900">{registro.nome}</td>
                     <td className="px-4 py-3 text-gray-500">{registro.perfil}</td>
                     <td className="px-4 py-3 text-gray-500">{registro.turma}</td>
-                    <td className="px-4 py-3 text-gray-500">{registro.horario}</td>
+                    <td className="px-4 py-3 text-gray-500">{registro.turno}</td>
+                    <td className="px-4 py-3 text-gray-500">{new Date(registro.data).toLocaleTimeString()}</td>
                     <td className="px-4 py-3">
-                      {registro.status === 'sucesso' ? (
+                      {registro.ativo === true ? (
                         <Badge className="bg-green-100 text-green-800">Reconhecido</Badge>
                       ) : (
                         <Badge className="bg-red-100 text-red-800">

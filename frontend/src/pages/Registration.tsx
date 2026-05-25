@@ -33,6 +33,7 @@ export default function Registration() {
     nome: "",
     perfil: "aluno",
     turma: "",
+    turno: "matutino",
     matricula: "",
   });
 
@@ -91,6 +92,7 @@ export default function Registration() {
         nome: dadosFormulario.nome.trim(),
         matricula: dadosFormulario.matricula.trim(),
         turma: dadosFormulario.turma.trim(),
+        turno: dadosFormulario.turno, // Definir um valor padrão para turno, ou ajustar conforme necessário
         perfil: dadosFormulario.perfil,
         imagemBase64: imagemCapturada,
       });
@@ -103,6 +105,7 @@ export default function Registration() {
         nome: "",
         perfil: "aluno",
         turma: "",
+        turno: "matutino",
         matricula: "",
       });
 
@@ -189,13 +192,13 @@ export default function Registration() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label
                     className="text-sm font-medium text-gray-700"
-                    htmlFor="perfil"
+                    htmlFor="turno"
                   >
-                    Perfil
+                    Turno
                   </label>
 
                   <select
@@ -235,6 +238,34 @@ export default function Registration() {
                     }
                     required
                   />
+                </div>
+              </div>
+          
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium text-gray-700"
+                    htmlFor="turno"
+                  >
+                    Turno
+                  </label>
+
+                  <select
+                    id="turno"
+                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    value={dadosFormulario.turno}
+                    onChange={(evento) =>
+                      setDadosFormulario({
+                        ...dadosFormulario,
+                        turno: evento.target.value,
+                      })
+                    }
+                  >
+                    <option value="matutino">Matutino</option>
+                    <option value="vespertino">Vespertino</option>
+                    <option value="noturno">Noturno</option>
+                    <option value="tempo integral">Tempo Integral</option>
+                  </select>
                 </div>
               </div>
 
@@ -417,6 +448,7 @@ export default function Registration() {
                     <th className="px-4 py-3">Aluno</th>
                     <th className="px-4 py-3">Matrícula</th>
                     <th className="px-4 py-3">Turma</th>
+                    <th className="px-4 py-3">Turno</th>
                     <th className="px-4 py-3">Perfil</th>
                     <th className="px-4 py-3">Face ID</th>
                     <th className="px-4 py-3 text-right">Ações</th>
@@ -440,6 +472,9 @@ export default function Registration() {
                         </td>
                         <td className="px-4 py-3 text-gray-600">
                           {aluno.turma}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {aluno.turno}
                         </td>
                         <td className="px-4 py-3 text-gray-600">
                           {aluno.perfil}
