@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import TabelaFrequenciaMensal from '@/components/TabelaFrequenciaMensal';
 import {
   fecharDia,
+  fecharTurno,
   justificarFalta,
   listarDiarioMensal,
   type PresencaMensalAluno,
@@ -39,6 +40,7 @@ export default function FrequenciaDigital() {
   const [alunos, setAlunos] = useState<PresencaMensalAluno[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [fechandoDia, setFechandoDia] = useState(false);
+  const [fechandoTurno, setFechandoTurno] = useState<'matutino' | 'vespertino' | null>(null);
 
   useEffect(() => {
     if (!turmaId) return;
@@ -84,6 +86,22 @@ export default function FrequenciaDigital() {
       });
     } finally {
       setFechandoDia(false);
+    }
+  }
+
+  async function handleFecharTurno(turno: 'matutino' | 'vespertino') {
+    try {
+      setFechandoTurno(turno);
+      const hoje = new Date().toISOString().slice(0, 10);
+      const resultado = await fecharTurno({ turno, data: hoje });
+      toast.success(`Turno ${turno} fechado: ${resultado.faltas} falta(s) em ${resultado.processados} aluno(s).`);
+      await carregar();
+    } catch (error) {
+      toast.error(`Erro ao fechar turno ${turno}.`, {
+        description: error instanceof Error ? error.message : 'Erro inesperado.',
+      });
+    } finally {
+      setFechandoTurno(null);
     }
   }
 
@@ -190,16 +208,41 @@ export default function FrequenciaDigital() {
               <span className="text-green-700">({componente})</span>
             )}
           </h2>
-          <Button
-            type="button"
-            variante="contorno"
-            tamanho="pequeno"
-            onClick={handleFecharDia}
-            disabled={fechandoDia}
-          >
-            {fechandoDia && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Fechar dia
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variante="contorno"
+              tamanho="pequeno"
+              onClick={() => handleFecharTurno('matutino')}
+              disabled={fechandoTurno !== null}
+              title="Fecha o dia para todos os alunos do turno matutino (07h–11h15)"
+            >
+              {fechandoTurno === 'matutino' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Fechar Matutino
+            </Button>
+            <Button
+              type="button"
+              variante="contorno"
+              tamanho="pequeno"
+              onClick={() => handleFecharTurno('vespertino')}
+              disabled={fechandoTurno !== null}
+              title="Fecha o dia para todos os alunos do turno vespertino (13h–17h15)"
+            >
+              {fechandoTurno === 'vespertino' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Fechar Vespertino
+            </Button>
+            <Button
+              type="button"
+              variante="contorno"
+              tamanho="pequeno"
+              onClick={handleFecharDia}
+              disabled={fechandoDia}
+              title="Fecha o dia apenas para esta turma"
+            >
+              {fechandoDia && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Fechar Turma
+            </Button>
+          </div>
         </div>
 
         {carregando ? (

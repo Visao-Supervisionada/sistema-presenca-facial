@@ -4,6 +4,7 @@ import {
   confirmarEntrada,
   confirmarSaida,
   fecharDia,
+  fecharDiaPorTurno,
   justificarFalta,
   listarDiarioMensal,
   listarDiarioPorTurma,
@@ -202,6 +203,32 @@ export const fecharDiaController: RequestHandler = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erro ao fechar dia.',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+export const fecharTurnoController: RequestHandler = async (req, res) => {
+  try {
+    const { turno, data } = req.body;
+
+    if (!turno || !data) {
+      res.status(400).json({ success: false, message: 'turno e data são obrigatórios.' });
+      return;
+    }
+
+    if (turno !== 'matutino' && turno !== 'vespertino') {
+      res.status(400).json({ success: false, message: 'turno deve ser "matutino" ou "vespertino".' });
+      return;
+    }
+
+    const resultado = await fecharDiaPorTurno({ turno, data });
+
+    res.json({ success: true, message: `Turno ${turno} fechado.`, turno, ...resultado });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao fechar turno.',
       error: error instanceof Error ? error.message : String(error),
     });
   }
