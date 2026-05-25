@@ -2,6 +2,7 @@ import { RequestHandler } from 'express';
 
 import { reconhecerMultiplosRostos } from '../services/reconhecimento.service';
 import { buscarAlunoPorMatricula } from '../services/alunos.service';
+import { registrarPresencaPorMatricula } from '../services/presencas.service';
 
 export const validarReconhecimentoController: RequestHandler = async (req, res) => {
   try {
@@ -91,8 +92,13 @@ export const validarReconhecimentoController: RequestHandler = async (req, res) 
           };
         }
 
+        const presenca = await registrarPresencaPorMatricula({
+          matricula: aluno.matricula,
+          confidence,
+        });
+
         return {
-          acao: 'reconhecido',
+          acao: presenca.acao,
           alunoEncontrado: true,
           aluno,
           reconhecimento: {

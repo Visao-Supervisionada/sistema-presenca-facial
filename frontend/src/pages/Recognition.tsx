@@ -60,7 +60,7 @@ export default function Recognition() {
         const novosRostos: RegistroTela[] = resposta.registros.map((registro) => {
           const reconhecimento = registro.reconhecimento;
 
-          const reconhecimentoValido = registro.acao === 'reconhecido';
+          const reconhecimentoValido = registro.acao === 'entrada' || registro.acao === 'saida' || registro.acao === 'ja_finalizada' || registro.acao === 'reconhecido';
 
           const nomeReconhecido =
             registro.aluno?.nome ||
