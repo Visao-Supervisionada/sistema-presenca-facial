@@ -26,10 +26,12 @@ export async function cadastrarAlunoController(req: Request, res: Response) {
       });
     }
 
-    if (!req.file) {
+    const arquivos = (req.files as Express.Multer.File[]) ?? [];
+
+    if (arquivos.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Imagem facial é obrigatória.',
+        message: 'Pelo menos uma imagem facial é obrigatória.',
       });
     }
 
@@ -37,25 +39,38 @@ export async function cadastrarAlunoController(req: Request, res: Response) {
     const matriculaNormalizada = String(matricula).trim();
     const turmaNormalizada = turma ? String(turma).trim() : '';
 
-    const respostaFace = await cadastrarFaceNaApi({
+    let primeiraRespostaFace = await cadastrarFaceNaApi({
       nome: nomeNormalizado,
       matricula: matriculaNormalizada,
-      arquivo: req.file,
+      arquivo: arquivos[0],
     });
+
+    for (let i = 1; i < arquivos.length; i++) {
+      try {
+        await cadastrarFaceNaApi({
+          nome: nomeNormalizado,
+          matricula: matriculaNormalizada,
+          arquivo: arquivos[i],
+        });
+      } catch (err) {
+        console.warn(`Falha ao registrar foto ${i + 1}:`, err instanceof Error ? err.message : String(err));
+      }
+    }
 
     const aluno = await criarAluno({
       nome: nomeNormalizado,
       matricula: matriculaNormalizada,
       turma: turmaNormalizada,
       perfil,
-      faceId: respostaFace.person.id,
+      faceId: primeiraRespostaFace.person.id,
     });
 
     return res.status(201).json({
       success: true,
       message: 'Aluno cadastrado com sucesso.',
       aluno,
-      face: respostaFace.person,
+      face: primeiraRespostaFace.person,
+      totalFotosRegistradas: arquivos.length,
     });
   } catch (error) {
     return res.status(500).json({
