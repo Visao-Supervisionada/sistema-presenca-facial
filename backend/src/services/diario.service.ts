@@ -143,18 +143,12 @@ export async function confirmarEntrada(params: {
     diaSemana,
   });
 
-  if (!horario) {
-    throw new Error('Horário não encontrado para este aluno neste dia.');
-  }
-
   const id = criarIdDiario(aluno.matricula, params.data);
   const horaEntradaReal = obterHoraAtual();
 
-  const statusEntrada = calcularStatusEntrada(
-    horaEntradaReal.slice(0, 5),
-    horario.horaLimiteEntrada,
-    horario.horaEntrada,
-  );
+  const statusEntrada = horario
+    ? calcularStatusEntrada(horaEntradaReal.slice(0, 5), horario.horaLimiteEntrada, horario.horaEntrada)
+    : 'presente';
 
   const registro: RegistroDiario = {
     id,
@@ -165,9 +159,9 @@ export async function confirmarEntrada(params: {
     matricula: aluno.matricula,
     turma: aluno.turma,
 
-    horaEntradaPrevista: horario.horaEntrada,
-    horaLimiteEntrada: horario.horaLimiteEntrada,
-    horaSaidaPrevista: horario.horaSaida,
+    horaEntradaPrevista: horario?.horaEntrada || '',
+    horaLimiteEntrada: horario?.horaLimiteEntrada || '',
+    horaSaidaPrevista: horario?.horaSaida || '',
 
     horaEntradaReal,
     horaSaidaReal: null,

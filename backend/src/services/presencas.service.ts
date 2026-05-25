@@ -58,12 +58,12 @@ export async function registrarPresencaPorMatricula(params: {
 
     await referencia.set(novaPresenca);
 
-    confirmarEntradaDiario({
+    await confirmarEntradaDiario({
       matricula: aluno.matricula,
       data: dataHoje,
       origem: 'reconhecimento_facial',
       confidence: params.confidence,
-    }).catch(() => {});
+    });
 
     return {
       acao: 'entrada',
@@ -95,12 +95,12 @@ export async function registrarPresencaPorMatricula(params: {
       confidence: presencaAtualizada.confidence,
     });
 
-    confirmarSaidaDiario({
+    await confirmarSaidaDiario({
       matricula: aluno.matricula,
       data: dataHoje,
       origem: 'reconhecimento_facial',
       confidence: params.confidence,
-    }).catch(() => {});
+    });
 
     return {
       acao: 'saida',
