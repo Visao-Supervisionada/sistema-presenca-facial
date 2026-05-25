@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Loader2, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, Loader2, Plus, Trash2, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -19,63 +19,81 @@ import {
   type DiaSemana,
   type Horario as HorarioTipo,
 } from "@/services/horariosService";
+import { listarAlunos, type Aluno } from "@/services/alunosService";
 
 const diasSemana: { label: string; value: DiaSemana }[] = [
-  { label: "Domingo", value: "domingo" },
   { label: "Segunda-feira", value: "segunda" },
   { label: "Terça-feira", value: "terca" },
   { label: "Quarta-feira", value: "quarta" },
   { label: "Quinta-feira", value: "quinta" },
   { label: "Sexta-feira", value: "sexta" },
   { label: "Sábado", value: "sabado" },
+  { label: "Domingo", value: "domingo" },
 ];
+
+const SELECT_CLASS =
+  "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400";
 
 export default function Horario() {
   const [carregando, setCarregando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [horarios, setHorarios] = useState<HorarioTipo[]>([]);
+  const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [alunoSelecionado, setAlunoSelecionado] = useState<Aluno | null>(null);
 
   const [formulario, setFormulario] = useState({
-    matricula: "",
-    nome: "",
-    turma: "",
     diaSemana: "segunda" as DiaSemana,
     horaEntrada: "07:00",
-    horaLimiteEntrada: "07:10",
-    horaSaida: "11:30",
+    horaLimiteEntrada: "07:15",
+    horaSaida: "11:15",
   });
 
-  async function carregarHorarios() {
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  async function carregarDados() {
     try {
       setCarregando(true);
-
-      const resultado = await listarHorarios();
-
-      setHorarios(resultado.horarios);
+      const [resHorarios, resAlunos] = await Promise.all([
+        listarHorarios(),
+        listarAlunos(),
+      ]);
+      setHorarios(resHorarios.horarios);
+      setAlunos(resAlunos.alunos);
     } catch (error) {
-      toast.error("Erro ao carregar horários.", {
-        description:
-          error instanceof Error ? error.message : "Erro inesperado.",
+      toast.error("Erro ao carregar dados.", {
+        description: error instanceof Error ? error.message : "Erro inesperado.",
       });
     } finally {
       setCarregando(false);
     }
   }
 
-  useEffect(() => {
-    carregarHorarios();
-  }, []);
+  function selecionarAluno(matricula: string) {
+    const aluno = alunos.find((a) => a.matricula === matricula) ?? null;
+    setAlunoSelecionado(aluno);
+  }
+
+  function turnoDoHorario(horaEntrada: string): "matutino" | "vespertino" {
+    return horaEntrada < "12:00" ? "matutino" : "vespertino";
+  }
 
   async function salvarHorario(evento: React.FormEvent) {
     evento.preventDefault();
+
+    if (!alunoSelecionado) {
+      toast.error("Selecione um aluno.");
+      return;
+    }
 
     try {
       setSalvando(true);
 
       await criarHorario({
-        matricula: formulario.matricula,
-        nome: formulario.nome,
-        turma: formulario.turma,
+        matricula: alunoSelecionado.matricula,
+        nome: alunoSelecionado.nome,
+        turma: alunoSelecionado.turma,
         diaSemana: formulario.diaSemana,
         horaEntrada: formulario.horaEntrada,
         horaLimiteEntrada: formulario.horaLimiteEntrada,
@@ -84,21 +102,18 @@ export default function Horario() {
 
       toast.success("Horário cadastrado com sucesso.");
 
+      setAlunoSelecionado(null);
       setFormulario({
-        matricula: "",
-        nome: "",
-        turma: "",
         diaSemana: "segunda",
         horaEntrada: "07:00",
-        horaLimiteEntrada: "07:10",
-        horaSaida: "11:30",
+        horaLimiteEntrada: "07:15",
+        horaSaida: "11:15",
       });
 
-      await carregarHorarios();
+      await carregarDados();
     } catch (error) {
       toast.error("Erro ao cadastrar horário.", {
-        description:
-          error instanceof Error ? error.message : "Erro inesperado.",
+        description: error instanceof Error ? error.message : "Erro inesperado.",
       });
     } finally {
       setSalvando(false);
@@ -108,14 +123,11 @@ export default function Horario() {
   async function removerHorario(id: string) {
     try {
       await excluirHorario(id);
-
       toast.success("Horário removido com sucesso.");
-
-      await carregarHorarios();
+      await carregarDados();
     } catch (error) {
       toast.error("Erro ao remover horário.", {
-        description:
-          error instanceof Error ? error.message : "Erro inesperado.",
+        description: error instanceof Error ? error.message : "Erro inesperado.",
       });
     }
   }
@@ -143,85 +155,58 @@ export default function Horario() {
               Novo Horário
             </CardTitle>
             <CardDescription>
-              Cadastre a regra de horário de um aluno.
+              Selecione um aluno e defina o horário.
             </CardDescription>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={salvarHorario} className="space-y-4">
+
+              {/* Seleção de aluno */}
               <div className="space-y-2">
-                <label
-                  htmlFor="nome"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Nome do aluno
+                <label className="text-sm font-medium text-gray-700">
+                  Aluno
                 </label>
-                <Input
-                  id="nome"
-                  placeholder="Ex: Felipe Barbosa"
-                  value={formulario.nome}
-                  onChange={(evento) =>
-                    setFormulario({ ...formulario, nome: evento.target.value })
-                  }
+                <select
+                  className={SELECT_CLASS}
+                  value={alunoSelecionado?.matricula ?? ""}
+                  onChange={(e) => selecionarAluno(e.target.value)}
                   required
-                />
+                >
+                  <option value="">Selecione um aluno</option>
+                  {alunos.map((aluno) => (
+                    <option key={aluno.id} value={aluno.matricula}>
+                      {aluno.nome}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="space-y-2">
-                <label
-                  htmlFor="matricula"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Matrícula
-                </label>
-                <Input
-                  id="matricula"
-                  placeholder="Ex: 21211312"
-                  value={formulario.matricula}
-                  onChange={(evento) =>
-                    setFormulario({
-                      ...formulario,
-                      matricula: evento.target.value,
-                    })
-                  }
-                  required
-                />
-              </div>
+              {/* Info do aluno selecionado */}
+              {alunoSelecionado && (
+                <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+                  <UserCheck className="h-4 w-4 shrink-0 text-green-600" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-green-800">
+                      {alunoSelecionado.nome}
+                    </p>
+                    <p className="text-xs text-green-600">
+                      Mat: {alunoSelecionado.matricula} · Turma: {alunoSelecionado.turma}
+                    </p>
+                  </div>
+                </div>
+              )}
 
+              {/* Dia da semana */}
               <div className="space-y-2">
-                <label
-                  htmlFor="turma"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Turma
-                </label>
-                <Input
-                  id="turma"
-                  placeholder="Ex: 3º Ano A"
-                  value={formulario.turma}
-                  onChange={(evento) =>
-                    setFormulario({ ...formulario, turma: evento.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  htmlFor="diaSemana"
-                  className="text-sm font-medium text-gray-700"
-                >
+                <label className="text-sm font-medium text-gray-700">
                   Dia da semana
                 </label>
                 <select
-                  id="diaSemana"
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className={SELECT_CLASS}
                   value={formulario.diaSemana}
-                  onChange={(evento) =>
-                    setFormulario({
-                      ...formulario,
-                      diaSemana: evento.target.value as DiaSemana,
-                    })
+                  onChange={(e) =>
+                    setFormulario({ ...formulario, diaSemana: e.target.value as DiaSemana })
                   }
                 >
                   {diasSemana.map((dia) => (
@@ -232,72 +217,52 @@ export default function Horario() {
                 </select>
               </div>
 
+              {/* Horários */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
-                  <label
-                    htmlFor="horaEntrada"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <label className="text-sm font-medium text-gray-700">
                     Entrada
                   </label>
                   <Input
-                    id="horaEntrada"
                     type="time"
                     value={formulario.horaEntrada}
-                    onChange={(evento) =>
-                      setFormulario({
-                        ...formulario,
-                        horaEntrada: evento.target.value,
-                      })
+                    onChange={(e) =>
+                      setFormulario({ ...formulario, horaEntrada: e.target.value })
                     }
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label
-                    htmlFor="horaLimiteEntrada"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <label className="text-sm font-medium text-gray-700">
                     Limite
                   </label>
                   <Input
-                    id="horaLimiteEntrada"
                     type="time"
                     value={formulario.horaLimiteEntrada}
-                    onChange={(evento) =>
-                      setFormulario({
-                        ...formulario,
-                        horaLimiteEntrada: evento.target.value,
-                      })
+                    onChange={(e) =>
+                      setFormulario({ ...formulario, horaLimiteEntrada: e.target.value })
                     }
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label
-                    htmlFor="horaSaida"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <label className="text-sm font-medium text-gray-700">
                     Saída
                   </label>
                   <Input
-                    id="horaSaida"
                     type="time"
                     value={formulario.horaSaida}
-                    onChange={(evento) =>
-                      setFormulario({
-                        ...formulario,
-                        horaSaida: evento.target.value,
-                      })
+                    onChange={(e) =>
+                      setFormulario({ ...formulario, horaSaida: e.target.value })
                     }
                     required
                   />
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={salvando}>
+              <Button type="submit" className="w-full" disabled={salvando || !alunoSelecionado}>
                 {salvando ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -340,6 +305,7 @@ export default function Horario() {
                       <th className="px-4 py-3">Aluno</th>
                       <th className="px-4 py-3">Turma</th>
                       <th className="px-4 py-3">Dia</th>
+                      <th className="px-4 py-3">Turno</th>
                       <th className="px-4 py-3">Entrada</th>
                       <th className="px-4 py-3">Limite</th>
                       <th className="px-4 py-3">Saída</th>
@@ -368,6 +334,19 @@ export default function Horario() {
                           <Badge variante="secundario">
                             {formatarDiaSemana(horario.diaSemana)}
                           </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                              turnoDoHorario(horario.horaEntrada) === "matutino"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-blue-100 text-blue-700"
+                            }`}
+                          >
+                            {turnoDoHorario(horario.horaEntrada) === "matutino"
+                              ? "Matutino"
+                              : "Vespertino"}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-gray-600">
                           {horario.horaEntrada}
