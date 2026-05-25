@@ -206,7 +206,7 @@ export async function fecharDia(params: { turmaId: string; data: string }) {
   return resultado;
 }
 
-export async function fecharTurno(params: { turno: 'matutino' | 'vespertino'; data: string }) {
+export async function fecharTurno(params: { turno: 'matutino' | 'vespertino' | 'noturno'; data: string }) {
   const resposta = await fetch(`${BACKEND_URL}/api/diario/fechar-turno`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

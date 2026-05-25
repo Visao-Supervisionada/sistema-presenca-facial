@@ -43,6 +43,7 @@ const DIAS_LABEL: Record<DiaSemana, string> = {
 const HORARIOS_TURNO = {
   matutino: { horaEntrada: "07:00", horaLimiteEntrada: "07:15", horaSaida: "11:15" },
   vespertino: { horaEntrada: "13:00", horaLimiteEntrada: "13:15", horaSaida: "17:15" },
+  noturno: { horaEntrada: "19:00", horaLimiteEntrada: "19:15", horaSaida: "22:15" },
 };
 
 const SELECT_CLASS =
@@ -54,7 +55,7 @@ export default function Horario() {
   const [horarios, setHorarios] = useState<HorarioTipo[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [alunoSelecionado, setAlunoSelecionado] = useState<Aluno | null>(null);
-  const [turno, setTurno] = useState<"matutino" | "vespertino">("matutino");
+  const [turno, setTurno] = useState<"matutino" | "vespertino" | "noturno">("matutino");
   const [diasSelecionados, setDiasSelecionados] = useState<DiaSemana[]>(["segunda", "terca", "quarta", "quinta", "sexta"]);
   const [horarioForm, setHorarioForm] = useState(HORARIOS_TURNO.matutino);
 
@@ -79,7 +80,7 @@ export default function Horario() {
     setAlunoSelecionado(alunos.find((a) => a.matricula === matricula) ?? null);
   }
 
-  function selecionarTurno(novoTurno: "matutino" | "vespertino") {
+  function selecionarTurno(novoTurno: "matutino" | "vespertino" | "noturno") {
     setTurno(novoTurno);
     setHorarioForm(HORARIOS_TURNO[novoTurno]);
   }
@@ -90,8 +91,10 @@ export default function Horario() {
     );
   }
 
-  function turnoDoHorario(horaEntrada: string): "matutino" | "vespertino" {
-    return horaEntrada < "12:00" ? "matutino" : "vespertino";
+  function turnoDoHorario(horaEntrada: string): "matutino" | "vespertino" | "noturno" {
+    if (horaEntrada < "12:00") return "matutino";
+    if (horaEntrada >= "18:00") return "noturno";
+    return "vespertino";
   }
 
   async function salvarHorario(evento: React.FormEvent) {
@@ -210,7 +213,7 @@ export default function Horario() {
               {/* Turno */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Turno</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => selecionarTurno("matutino")}
@@ -234,6 +237,18 @@ export default function Horario() {
                   >
                     🌤️ Vespertino
                     <p className="mt-0.5 text-xs font-normal opacity-70">13:00 – 17:15</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selecionarTurno("noturno")}
+                    className={`rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-colors ${
+                      turno === "noturno"
+                        ? "border-indigo-400 bg-indigo-50 text-indigo-700"
+                        : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                    }`}
+                  >
+                    ☾ Noturno
+                    <p className="mt-0.5 text-xs font-normal opacity-70">19:00 – 22:15</p>
                   </button>
                 </div>
               </div>
@@ -369,15 +384,20 @@ export default function Horario() {
                           <Badge variante="secundario">{DIAS_LABEL[horario.diaSemana]}</Badge>
                         </td>
                         <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                              turnoDoHorario(horario.horaEntrada) === "matutino"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-blue-100 text-blue-700"
-                            }`}
-                          >
-                            {turnoDoHorario(horario.horaEntrada) === "matutino" ? "Matutino" : "Vespertino"}
-                          </span>
+                          {(() => {
+                            const t = turnoDoHorario(horario.horaEntrada);
+                            const styles = {
+                              matutino: "bg-yellow-100 text-yellow-700",
+                              vespertino: "bg-blue-100 text-blue-700",
+                              noturno: "bg-indigo-100 text-indigo-700",
+                            };
+                            const labels = { matutino: "Matutino", vespertino: "Vespertino", noturno: "Noturno" };
+                            return (
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${styles[t]}`}>
+                                {labels[t]}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3 text-gray-600">{horario.horaEntrada}</td>
                         <td className="px-4 py-3 text-gray-600">{horario.horaLimiteEntrada}</td>

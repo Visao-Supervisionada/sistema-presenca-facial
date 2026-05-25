@@ -40,7 +40,7 @@ export default function FrequenciaDigital() {
   const [alunos, setAlunos] = useState<PresencaMensalAluno[]>([]);
   const [carregando, setCarregando] = useState(false);
   const [fechandoDia, setFechandoDia] = useState(false);
-  const [fechandoTurno, setFechandoTurno] = useState<'matutino' | 'vespertino' | null>(null);
+  const [fechandoTurno, setFechandoTurno] = useState<'matutino' | 'vespertino' | 'noturno' | null>(null);
 
   useEffect(() => {
     if (!turmaId) return;
@@ -89,7 +89,7 @@ export default function FrequenciaDigital() {
     }
   }
 
-  async function handleFecharTurno(turno: 'matutino' | 'vespertino') {
+  async function handleFecharTurno(turno: 'matutino' | 'vespertino' | 'noturno') {
     try {
       setFechandoTurno(turno);
       const hoje = new Date().toISOString().slice(0, 10);
@@ -230,6 +230,17 @@ export default function FrequenciaDigital() {
             >
               {fechandoTurno === 'vespertino' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Fechar Vespertino
+            </Button>
+            <Button
+              type="button"
+              variante="contorno"
+              tamanho="pequeno"
+              onClick={() => handleFecharTurno('noturno')}
+              disabled={fechandoTurno !== null}
+              title="Fecha o dia para todos os alunos do turno noturno (19h–22h15)"
+            >
+              {fechandoTurno === 'noturno' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Fechar Noturno
             </Button>
             <Button
               type="button"
