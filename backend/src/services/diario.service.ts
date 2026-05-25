@@ -391,6 +391,11 @@ export async function listarDiarioMensal(params: {
     const justAluno = justificativasPorAluno[aluno.id] || {};
     const dias: Record<string, PresencaDoDia> = {};
 
+    const criadoEm = aluno.criadoEm as FirebaseFirestore.Timestamp | undefined;
+    const dataCadastro = criadoEm?.toDate
+      ? criadoEm.toDate().toISOString().slice(0, 10)
+      : '1900-01-01';
+
     for (let dia = 1; dia <= ultimoDia; dia++) {
       const dataStr = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
       const diaSemana = new Date(`${dataStr}T00:00:00`).getDay();
@@ -406,6 +411,9 @@ export async function listarDiarioMensal(params: {
       } else if (reg) {
         const s = reg.statusEntrada;
         status = s === 'ausente' ? 'falta' : (s as StatusPresencaMensal);
+      } else if (dataStr < dataCadastro) {
+        // Dia anterior ao cadastro do aluno = sem dados
+        status = 'pendente';
       } else if (dataStr <= hoje) {
         // Dia passado sem registro = falta
         status = 'falta';
