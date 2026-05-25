@@ -15,7 +15,7 @@ export interface DadosCadastroAluno {
   matricula: string;
   turma: string;
   perfil: string;
-  imagemBase64: string;
+  imagensBase64: string[];
 }
 
 function converterBase64ParaArquivo(base64: string, nomeArquivo: string): File {
@@ -40,16 +40,18 @@ export async function cadastrarAluno(dados: DadosCadastroAluno) {
 
   const matriculaNormalizada = dados.matricula.trim();
 
-  const arquivoImagem = converterBase64ParaArquivo(
-    dados.imagemBase64,
-    `${matriculaNormalizada}.jpg`,
-  );
-
   formulario.append('nome', dados.nome.trim());
   formulario.append('matricula', matriculaNormalizada);
   formulario.append('turma', dados.turma.trim());
   formulario.append('perfil', dados.perfil.trim());
-  formulario.append('file', arquivoImagem);
+
+  dados.imagensBase64.forEach((imagem, indice) => {
+    const arquivo = converterBase64ParaArquivo(
+      imagem,
+      `${matriculaNormalizada}_foto${indice + 1}.jpg`,
+    );
+    formulario.append('files', arquivo);
+  });
 
   const resposta = await fetch(`${BACKEND_URL}/api/alunos`, {
     method: 'POST',
