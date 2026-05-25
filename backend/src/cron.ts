@@ -36,5 +36,20 @@ export function iniciarCrons(): void {
     { timezone: 'America/Manaus' },
   );
 
-  console.log('[CRON] Agendamentos ativos: matutino 11h15, vespertino 17h15 (America/Manaus)');
+  // Noturno: fecha às 22h15 (Manaus, GMT-4)
+  cron.schedule(
+    '15 22 * * 1-5',
+    async () => {
+      const data = obterDataHoje();
+      try {
+        const resultado = await fecharDiaPorTurno({ turno: 'noturno', data });
+        console.log(`[CRON] Noturno fechado: ${resultado.faltas} falta(s) em ${resultado.processados} aluno(s).`);
+      } catch (error) {
+        console.error('[CRON] Erro ao fechar turno noturno:', error);
+      }
+    },
+    { timezone: 'America/Manaus' },
+  );
+
+  console.log('[CRON] Agendamentos ativos: matutino 11h15, vespertino 17h15, noturno 22h15 (America/Manaus)');
 }

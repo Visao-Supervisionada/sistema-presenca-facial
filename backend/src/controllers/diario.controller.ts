@@ -217,8 +217,8 @@ export const fecharTurnoController: RequestHandler = async (req, res) => {
       return;
     }
 
-    if (turno !== 'matutino' && turno !== 'vespertino') {
-      res.status(400).json({ success: false, message: 'turno deve ser "matutino" ou "vespertino".' });
+    if (turno !== 'matutino' && turno !== 'vespertino' && turno !== 'noturno') {
+      res.status(400).json({ success: false, message: 'turno deve ser "matutino", "vespertino" ou "noturno".' });
       return;
     }
 

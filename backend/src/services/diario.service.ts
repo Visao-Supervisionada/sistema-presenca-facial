@@ -438,7 +438,7 @@ export async function listarDiarioMensal(params: {
 }
 
 export async function fecharDiaPorTurno(params: {
-  turno: 'matutino' | 'vespertino';
+  turno: 'matutino' | 'vespertino' | 'noturno';
   data: string;
 }): Promise<{ processados: number; faltas: number }> {
   const { turno, data } = params;
@@ -453,8 +453,11 @@ export async function fecharDiaPorTurno(params: {
   for (const doc of snapshotHorarios.docs) {
     const h = doc.data() as Horario;
     const ehMatutino = h.horaEntrada < '12:00';
+    const ehNoturno = h.horaEntrada >= '18:00';
+    const ehVespertino = !ehMatutino && !ehNoturno;
     if (turno === 'matutino' && ehMatutino) horariosPorMatricula[h.matricula] = h;
-    if (turno === 'vespertino' && !ehMatutino) horariosPorMatricula[h.matricula] = h;
+    if (turno === 'vespertino' && ehVespertino) horariosPorMatricula[h.matricula] = h;
+    if (turno === 'noturno' && ehNoturno) horariosPorMatricula[h.matricula] = h;
   }
 
   const matriculas = Object.keys(horariosPorMatricula);
