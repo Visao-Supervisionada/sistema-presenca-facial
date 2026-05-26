@@ -92,7 +92,7 @@ export const frequenciaSemanaController: RequestHandler = async (req, res) => {
       const diaSemana = d.getDay();
       if (diaSemana === 0 || diaSemana === 6) continue;
 
-      const dataStr = d.toISOString().slice(0, 10);
+      const dataStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
       const snapshot = await colecaoPresencas
