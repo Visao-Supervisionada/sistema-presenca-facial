@@ -32,7 +32,7 @@ export interface RespostaPresencaReconhecimento {
 }
 
 export interface ReconhecimentoValidado {
-  acao: 'entrada' | 'saida' | 'ja_finalizada' | 'reconhecido' | 'desconhecido' | 'aluno_nao_encontrado' | 'em_aula';
+  acao: 'entrada' | 'saida' | 'ja_finalizada' | 'reconhecido' | 'desconhecido' | 'aluno_nao_encontrado' | 'em_aula' | 'sem_horario' | 'fora_da_janela';
   alunoEncontrado: boolean;
   aluno?: {
     id: string;

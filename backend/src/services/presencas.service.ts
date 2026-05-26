@@ -16,12 +16,23 @@ function obterDiaSemanaAtual(): DiaSemana {
   return dias[dia];
 }
 
-function estaEmJanelaDeSaida(horaSaida: string): boolean {
+function horaAtualEmMinutos(): number {
   const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const agoraMins = horaParaMinutos(agora);
+  return horaParaMinutos(agora);
+}
+
+function estaEmJanelaDeEntrada(horaEntrada: string, horaSaida: string): boolean {
+  const agora = horaAtualEmMinutos();
+  const inicioJanela = horaParaMinutos(horaEntrada) - 30;
+  const fimJanela = horaParaMinutos(horaSaida);
+  return agora >= inicioJanela && agora <= fimJanela;
+}
+
+function estaEmJanelaDeSaida(horaSaida: string): boolean {
+  const agora = horaAtualEmMinutos();
   const inicioPrev = horaParaMinutos(horaSaida);
   const fimPrev = inicioPrev + 30;
-  return agoraMins >= inicioPrev && agoraMins <= fimPrev;
+  return agora >= inicioPrev && agora <= fimPrev;
 }
 
 const colecaoPresencas = db.collection('presencas');
@@ -42,15 +53,20 @@ export async function registrarPresencaPorMatricula(params: {
   matricula: string;
   confidence: number;
 }): Promise<{
-  acao: 'entrada' | 'saida' | 'ja_finalizada' | 'aluno_nao_encontrado' | 'em_aula';
+  acao: 'entrada' | 'saida' | 'ja_finalizada' | 'aluno_nao_encontrado' | 'em_aula' | 'sem_horario' | 'fora_da_janela';
   presenca?: Presenca;
 }> {
   const aluno = await buscarAlunoPorMatricula(params.matricula);
 
   if (!aluno) {
-    return {
-      acao: 'aluno_nao_encontrado',
-    };
+    return { acao: 'aluno_nao_encontrado' };
+  }
+
+  const diaSemana = obterDiaSemanaAtual();
+  const horario = await buscarHorarioPorMatriculaEDia({ matricula: aluno.matricula, diaSemana });
+
+  if (!horario) {
+    return { acao: 'sem_horario' };
   }
 
   const dataHoje = obterDataAtual();
@@ -62,6 +78,10 @@ export async function registrarPresencaPorMatricula(params: {
     .get();
 
   if (snapshot.empty) {
+    if (!estaEmJanelaDeEntrada(horario.horaEntrada, horario.horaSaida)) {
+      return { acao: 'fora_da_janela' };
+    }
+
     const referencia = colecaoPresencas.doc();
 
     const novaPresenca: Presenca = {
@@ -86,27 +106,19 @@ export async function registrarPresencaPorMatricula(params: {
       confidence: params.confidence,
     });
 
-    return {
-      acao: 'entrada',
-      presenca: novaPresenca,
-    };
+    return { acao: 'entrada', presenca: novaPresenca };
   }
 
   const documentoPresenca = snapshot.docs[0];
 
   if (!documentoPresenca) {
-    return {
-      acao: 'aluno_nao_encontrado',
-    };
+    return { acao: 'aluno_nao_encontrado' };
   }
 
   const presencaAtual = documentoPresenca.data() as Presenca;
 
   if (presencaAtual.horaEntrada && !presencaAtual.horaSaida) {
-    const diaSemana = obterDiaSemanaAtual();
-    const horario = await buscarHorarioPorMatriculaEDia({ matricula: aluno.matricula, diaSemana });
-
-    if (horario && !estaEmJanelaDeSaida(horario.horaSaida)) {
+    if (!estaEmJanelaDeSaida(horario.horaSaida)) {
       return { acao: 'em_aula', presenca: presencaAtual };
     }
 
@@ -130,16 +142,10 @@ export async function registrarPresencaPorMatricula(params: {
       confidence: params.confidence,
     });
 
-    return {
-      acao: 'saida',
-      presenca: presencaAtualizada,
-    };
+    return { acao: 'saida', presenca: presencaAtualizada };
   }
 
-  return {
-    acao: 'ja_finalizada',
-    presenca: presencaAtual,
-  };
+  return { acao: 'ja_finalizada', presenca: presencaAtual };
 }
 
 export async function listarPresencas(): Promise<Presenca[]> {
