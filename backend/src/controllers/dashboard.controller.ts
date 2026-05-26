@@ -26,7 +26,9 @@ function horaAtualEmMinutos(): number {
 
 export const resumoDashboardController: RequestHandler = async (req, res) => {
   try {
-    const data = String(req.query['data'] || new Date().toISOString().slice(0, 10));
+    const d = new Date();
+    const dataHoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const data = String(req.query['data'] || dataHoje);
     const diaSemana = diaSemanaDeData(data);
     const agoraMins = horaAtualEmMinutos();
 

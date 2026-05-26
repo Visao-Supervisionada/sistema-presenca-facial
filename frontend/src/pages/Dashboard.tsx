@@ -27,7 +27,11 @@ const CORES_PIZZA = ['#16a34a', '#dc2626', '#ca8a04'];
 const INTERVALO_REFRESH = 30_000;
 
 function hojeFormatado(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
 }
 
 function horaAtual(): string {
