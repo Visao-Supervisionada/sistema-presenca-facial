@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+import dashboardRoutes from './routes/dashboard.routes';
 import alunosRoutes from './routes/alunos.routes';
 import presencasRoutes from './routes/presencas.routes';
 import horariosRoutes from './routes/horarios.routes';
@@ -42,6 +43,7 @@ app.get('/health', (_req, res) => {
   });
 });
 
+app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/alunos', alunosRoutes);
 app.use('/api/presencas', presencasRoutes);
 app.use('/api/horarios', horariosRoutes);
