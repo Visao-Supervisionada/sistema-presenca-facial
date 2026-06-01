@@ -1,4 +1,20 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
+export interface ResultadoClassificacaoReconhecimento {
+  bbox: number[];
+  matched: boolean;
+  name: string;
+  registration: string;
+  confidence: number;
+  cosine_confidence?: number;
+}
+
+export interface RespostaClassificarReconhecimento {
+  success: boolean;
+  total_faces: number;
+  classifier_loaded: boolean;
+  results: ResultadoClassificacaoReconhecimento[];
+}
 
 export interface RegistroReconhecimentoBackend {
   reconhecimento: {
@@ -9,7 +25,16 @@ export interface RegistroReconhecimentoBackend {
     confidence: number;
     cosine_confidence?: number;
   };
-  acao: 'entrada' | 'saida' | 'ja_finalizada' | 'aluno_nao_encontrado' | 'desconhecido';
+  acao:
+    | "entrada"
+    | "saida"
+    | "ja_finalizada"
+    | "aluno_nao_encontrado"
+    | "desconhecido"
+    | "em_aula"
+    | "sem_horario"
+    | "fora_da_janela"
+    | "classificado";
   presenca?: {
     id?: string;
     alunoId: string;
@@ -32,7 +57,16 @@ export interface RespostaPresencaReconhecimento {
 }
 
 export interface ReconhecimentoValidado {
-  acao: 'entrada' | 'saida' | 'ja_finalizada' | 'reconhecido' | 'desconhecido' | 'aluno_nao_encontrado' | 'em_aula' | 'sem_horario' | 'fora_da_janela';
+  acao:
+    | "entrada"
+    | "saida"
+    | "ja_finalizada"
+    | "reconhecido"
+    | "desconhecido"
+    | "aluno_nao_encontrado"
+    | "em_aula"
+    | "sem_horario"
+    | "fora_da_janela";
   alunoEncontrado: boolean;
   aluno?: {
     id: string;
@@ -58,8 +92,8 @@ export interface RespostaValidarReconhecimento {
 }
 
 function converterBase64ParaArquivo(base64: string, nomeArquivo: string): File {
-  const partes = base64.split(',');
-  const tipo = partes[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const partes = base64.split(",");
+  const tipo = partes[0].match(/:(.*?);/)?.[1] || "image/jpeg";
   const binario = atob(partes[1]);
 
   const arrayBuffer = new ArrayBuffer(binario.length);
@@ -74,27 +108,96 @@ function converterBase64ParaArquivo(base64: string, nomeArquivo: string): File {
   });
 }
 
-export async function registrarPresencaPorReconhecimento(
+function criarFormularioComImagem(
   imagemBase64: string,
-): Promise<RespostaPresencaReconhecimento> {
+  nomeArquivo: string,
+): FormData {
   const formulario = new FormData();
 
   const arquivoImagem = converterBase64ParaArquivo(
     imagemBase64,
-    `reconhecimento-${Date.now()}.jpg`,
+    nomeArquivo,
   );
 
-  formulario.append('file', arquivoImagem);
+  formulario.append("file", arquivoImagem);
 
-  const resposta = await fetch(`${BACKEND_URL}/api/presencas/reconhecimento`, {
-    method: 'POST',
+  return formulario;
+}
+
+function normalizarResultadosClassificacao(
+  resultado: any,
+): ResultadoClassificacaoReconhecimento[] {
+  if (Array.isArray(resultado.results)) {
+    return resultado.results;
+  }
+
+  if (Array.isArray(resultado.registros)) {
+    return resultado.registros.map((registro: any) => {
+      const reconhecimento = registro.reconhecimento || registro;
+
+      return {
+        bbox: reconhecimento.bbox || [],
+        matched: Boolean(reconhecimento.matched),
+        name: reconhecimento.name || "Desconhecido",
+        registration: reconhecimento.registration || "",
+        confidence: reconhecimento.confidence || 0,
+        cosine_confidence: reconhecimento.cosine_confidence || 0,
+      };
+    });
+  }
+
+  return [];
+}
+
+export async function classificarReconhecimento(
+  imagemBase64: string,
+): Promise<RespostaClassificarReconhecimento> {
+  const formulario = criarFormularioComImagem(
+    imagemBase64,
+    `frame-classificar-${Date.now()}.jpg`,
+  );
+
+  formulario.append("threshold", "0.6");
+  formulario.append("minCosineThreshold", "0.35");
+
+  const resposta = await fetch(`${BACKEND_URL}/api/reconhecimento/classificar`, {
+    method: "POST",
     body: formulario,
   });
 
   const resultado = await resposta.json();
 
   if (!resposta.ok) {
-    throw new Error(resultado.message || 'Erro ao processar reconhecimento.');
+    throw new Error(resultado.message || "Erro ao classificar reconhecimento.");
+  }
+
+  const results = normalizarResultadosClassificacao(resultado);
+
+  return {
+    success: Boolean(resultado.success),
+    total_faces: resultado.total_faces ?? results.length,
+    classifier_loaded: resultado.classifier_loaded ?? true,
+    results,
+  };
+}
+
+export async function registrarPresencaPorReconhecimento(
+  imagemBase64: string,
+): Promise<RespostaPresencaReconhecimento> {
+  const formulario = criarFormularioComImagem(
+    imagemBase64,
+    `reconhecimento-${Date.now()}.jpg`,
+  );
+
+  const resposta = await fetch(`${BACKEND_URL}/api/presencas/reconhecimento`, {
+    method: "POST",
+    body: formulario,
+  });
+
+  const resultado = await resposta.json();
+
+  if (!resposta.ok) {
+    throw new Error(resultado.message || "Erro ao processar reconhecimento.");
   }
 
   return resultado;
@@ -103,24 +206,20 @@ export async function registrarPresencaPorReconhecimento(
 export async function validarReconhecimento(
   imagemBase64: string,
 ): Promise<RespostaValidarReconhecimento> {
-  const formulario = new FormData();
-
-  const arquivoImagem = converterBase64ParaArquivo(
+  const formulario = criarFormularioComImagem(
     imagemBase64,
-    `frame-${Date.now()}.jpg`,
+    `frame-validar-${Date.now()}.jpg`,
   );
 
-  formulario.append('file', arquivoImagem);
-
   const resposta = await fetch(`${BACKEND_URL}/api/reconhecimento/validar`, {
-    method: 'POST',
+    method: "POST",
     body: formulario,
   });
 
   const resultado = await resposta.json();
 
   if (!resposta.ok) {
-    throw new Error(resultado.message || 'Erro ao validar reconhecimento.');
+    throw new Error(resultado.message || "Erro ao validar reconhecimento.");
   }
 
   return resultado;
