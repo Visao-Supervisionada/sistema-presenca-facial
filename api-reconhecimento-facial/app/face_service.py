@@ -23,7 +23,7 @@ class FaceService:
             root=self.model_root,
         )
 
-        ctx_id = int(os.getenv("FACE_CTX_ID", "-1"))
+        ctx_id = int(os.getenv("FACE_CTX_ID", "0"))
         det_size = int(os.getenv("FACE_DET_SIZE", "320"))
 
         # ctx_id 0 usa gpu; ctx_id -1 usa cpu
