@@ -11,13 +11,18 @@ function horaParaMinutos(hora: string): number {
 }
 
 function obterDiaSemanaAtual(): DiaSemana {
-  const dia = new Date().getDay();
+  const dataManaus = new Intl.DateTimeFormat('sv', { timeZone: 'America/Manaus' }).format(new Date());
+  const dia = new Date(`${dataManaus}T00:00:00`).getDay();
   const dias: DiaSemana[] = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
   return dias[dia];
 }
 
 function horaAtualEmMinutos(): number {
-  const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const agora = new Date().toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'America/Manaus',
+  });
   return horaParaMinutos(agora);
 }
 
@@ -38,8 +43,7 @@ function estaEmJanelaDeSaida(horaSaida: string): boolean {
 const colecaoPresencas = db.collection('presencas');
 
 function obterDataAtual() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return new Intl.DateTimeFormat('sv', { timeZone: 'America/Manaus' }).format(new Date());
 }
 
 function obterHoraAtual() {
@@ -47,6 +51,7 @@ function obterHoraAtual() {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
+    timeZone: 'America/Manaus',
   });
 }
 
