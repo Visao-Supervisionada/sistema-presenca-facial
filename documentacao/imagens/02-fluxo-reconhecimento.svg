@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 430" width="860" height="430">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280"/>
+    </marker>
+    <marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#16a34a"/>
+    </marker>
+    <marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
+    </marker>
+    <marker id="arr-y" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706"/>
+    </marker>
+    <filter id="sh">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000018"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="860" height="430" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+
+  <!-- Title -->
+  <text x="430" y="34" font-family="system-ui,-apple-system,sans-serif" font-size="15" font-weight="700" text-anchor="middle" fill="#0f172a">Fluxo de Reconhecimento e Registro de Presença</text>
+
+  <!-- ======= ROW 1: Pipeline de Captura ======= -->
+
+  <!-- Camera box -->
+  <rect x="20" y="54" width="110" height="72" rx="10" fill="white" stroke="#6366f1" stroke-width="2" filter="url(#sh)"/>
+  <rect x="20" y="54" width="110" height="26" rx="10" fill="#6366f1"/>
+  <rect x="20" y="68" width="110" height="12" fill="#6366f1"/>
+  <text x="75" y="70" font-family="system-ui,sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="white">Webcam</text>
+  <text x="75" y="94" font-family="system-ui,sans-serif" font-size="9.5" text-anchor="middle" fill="#4338ca">React Webcam</text>
+  <text x="75" y="109" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" fill="#64748b">frame JPEG</text>
+
+  <!-- Arrow 1 -->
+  <path d="M 130 90 L 168 90" stroke="#6b7280" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+  <text x="149" y="84" font-family="system-ui,sans-serif" font-size="8.5" text-anchor="middle" fill="#6b7280">HTTP POST</text>
+
+  <!-- Backend box -->
+  <rect x="168" y="54" width="130" height="72" rx="10" fill="white" stroke="#16a34a" stroke-width="2" filter="url(#sh)"/>
+  <rect x="168" y="54" width="130" height="26" rx="10" fill="#16a34a"/>
+  <rect x="168" y="68" width="130" height="12" fill="#16a34a"/>
+  <text x="233" y="70" font-family="system-ui,sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="white">Backend</text>
+  <text x="233" y="94" font-family="system-ui,sans-serif" font-size="9.5" text-anchor="middle" fill="#166534">POST /validar</text>
+  <text x="233" y="109" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" fill="#64748b">Node.js :3000</text>
+
+  <!-- Arrow 2 -->
+  <path d="M 298 90 L 336 90" stroke="#6b7280" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+  <text x="317" y="84" font-family="system-ui,sans-serif" font-size="8.5" text-anchor="middle" fill="#6b7280">HTTP POST</text>
+
+  <!-- API Facial box -->
+  <rect x="336" y="54" width="140" height="72" rx="10" fill="white" stroke="#f59e0b" stroke-width="2" filter="url(#sh)"/>
+  <rect x="336" y="54" width="140" height="26" rx="10" fill="#f59e0b"/>
+  <rect x="336" y="68" width="140" height="12" fill="#f59e0b"/>
+  <text x="406" y="70" font-family="system-ui,sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="white">API Facial</text>
+  <text x="406" y="94" font-family="system-ui,sans-serif" font-size="9.5" text-anchor="middle" fill="#78350f">/recognize-multiple</text>
+  <text x="406" y="109" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" fill="#64748b">FastAPI :8000</text>
+
+  <!-- Arrow 3 -->
+  <path d="M 476 90 L 514 90" stroke="#6b7280" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+  <!-- buffalo_s box -->
+  <rect x="514" y="54" width="156" height="72" rx="10" fill="white" stroke="#f59e0b" stroke-width="2" filter="url(#sh)"/>
+  <rect x="514" y="54" width="156" height="26" rx="10" fill="#b45309"/>
+  <rect x="514" y="68" width="156" height="12" fill="#b45309"/>
+  <text x="592" y="70" font-family="system-ui,sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="white">buffalo_s + FaceIndex</text>
+  <text x="592" y="94" font-family="system-ui,sans-serif" font-size="9.5" text-anchor="middle" fill="#78350f">embedding 512-dim</text>
+  <text x="592" y="109" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" fill="#64748b">cosine similarity</text>
+
+  <!-- Arrow buffalo_s down to decision -->
+  <path d="M 592 126 L 592 162" stroke="#6b7280" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+  <!-- ======= DECISION 1: Reconhecido? ======= -->
+  <polygon points="592,162 692,186 592,210 492,186" fill="white" stroke="#6b7280" stroke-width="2" filter="url(#sh)"/>
+  <text x="592" y="182" font-family="system-ui,sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#374151">Reconhecido</text>
+  <text x="592" y="196" font-family="system-ui,sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#374151">acima do limiar?</text>
+
+  <!-- Arrow Não (left) -->
+  <path d="M 492 186 L 350 186 L 350 248" stroke="#dc2626" stroke-width="1.5" fill="none" marker-end="url(#arr-r)"/>
+  <text x="430" y="180" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" fill="#dc2626">Não</text>
+
+  <!-- Arrow Sim (right) -->
+  <path d="M 692 186 L 760 186 L 760 248" stroke="#16a34a" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
+  <text x="730" y="180" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" fill="#16a34a">Sim</text>
+
+  <!-- ======= LEFT BRANCH: Desconhecido ======= -->
+  <rect x="270" y="248" width="160" height="66" rx="10" fill="white" stroke="#dc2626" stroke-width="2" filter="url(#sh)"/>
+  <rect x="270" y="248" width="160" height="26" rx="10" fill="#dc2626"/>
+  <rect x="270" y="262" width="160" height="12" fill="#dc2626"/>
+  <text x="350" y="264" font-family="system-ui,sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="white">Desconhecido</text>
+  <text x="350" y="288" font-family="system-ui,sans-serif" font-size="9.5" text-anchor="middle" fill="#991b1b">sem registro de presença</text>
+  <text x="350" y="304" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" fill="#64748b">nenhum dado salvo</text>
+
+  <!-- ======= RIGHT BRANCH: Backend verifica horário ======= -->
+  <rect x="690" y="248" width="148" height="66" rx="10" fill="white" stroke="#16a34a" stroke-width="2" filter="url(#sh)"/>
+  <rect x="690" y="248" width="148" height="26" rx="10" fill="#16a34a"/>
+  <rect x="690" y="262" width="148" height="12" fill="#16a34a"/>
+  <text x="764" y="264" font-family="system-ui,sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="white">Backend</text>
+  <text x="764" y="288" font-family="system-ui,sans-serif" font-size="9.5" text-anchor="middle" fill="#166534">busca horário do aluno</text>
+  <text x="764" y="304" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" fill="#64748b">Firestore: horarios</text>
+
+  <!-- Arrow right branch down to decision 2 -->
+  <path d="M 764 314 L 764 352" stroke="#6b7280" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+  <!-- ======= DECISION 2: Janela temporal? ======= -->
+  <polygon points="764,352 854,372 764,392 674,372" fill="white" stroke="#6b7280" stroke-width="2" filter="url(#sh)"/>
+  <text x="764" y="368" font-family="system-ui,sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#374151">Janela</text>
+  <text x="764" y="382" font-family="system-ui,sans-serif" font-size="10" font-weight="600" text-anchor="middle" fill="#374151">temporal?</text>
+
+  <!-- Branch Entrada (left) -->
+  <path d="M 674 372 L 560 372 L 560 396" stroke="#16a34a" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
+  <text x="616" y="366" font-family="system-ui,sans-serif" font-size="8.5" text-anchor="middle" fill="#16a34a">Entrada</text>
+
+  <!-- Branch Saida (down) -->
+  <path d="M 764 392 L 764 396" stroke="#16a34a" stroke-width="1.5" fill="none" marker-end="url(#arr-g)"/>
+  <text x="780" y="407" font-family="system-ui,sans-serif" font-size="8.5" fill="#16a34a">Saída</text>
+
+  <!-- Branch Fora (right-ish, going down to right) -->
+  <path d="M 854 372 L 854 396" stroke="#d97706" stroke-width="1.5" fill="none" marker-end="url(#arr-y)"/>
+  <text x="850" y="366" font-family="system-ui,sans-serif" font-size="8.5" text-anchor="end" fill="#d97706">Fora</text>
+
+  <!-- ======= OUTCOME BOXES ======= -->
+
+  <!-- Entrada box -->
+  <rect x="480" y="396" width="155" height="22" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="557" y="411" font-family="system-ui,sans-serif" font-size="9.5" text-anchor="middle" fill="#166534">✅  Registra entrada + Diário</text>
+
+  <!-- Saida box -->
+  <rect x="690" y="396" width="148" height="22" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="764" y="411" font-family="system-ui,sans-serif" font-size="9.5" text-anchor="middle" fill="#166534">✅  Registra saída + Diário</text>
+
+  <!-- Fora box -->
+  <rect x="800" y="396" width="42" height="0" rx="0" fill="none"/>
+  <rect x="820" y="396" width="30" height="0" rx="0"/>
+  <rect x="805" y="396" width="46" height="22" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="828" y="411" font-family="system-ui,sans-serif" font-size="9.5" text-anchor="middle" fill="#92400e">⚠️  fora_da_janela</text>
+
+  <!-- Firebase Firestore label below outcomes -->
+  <rect x="460" y="428" width="412" height="0" rx="0"/>
+
+  <!-- Note at bottom -->
+  <text x="430" y="418" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" fill="#94a3b8">Janela entrada: horaEntrada − 30min → horaSaida   |   Janela saída: horaSaida → horaSaida + 30min</text>
+</svg>

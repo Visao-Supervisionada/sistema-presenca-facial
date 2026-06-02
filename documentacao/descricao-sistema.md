@@ -291,53 +291,17 @@ Para ilustrar a operação integrada do SRGFA, apresenta-se o fluxo completo per
 
 ### 7.1 Arquitetura dos Serviços
 
-```mermaid
-graph LR
-    Browser["🖥️ Frontend\nReact 19 · Vite\n:5173"] -->|HTTP REST| BE["⚙️ Backend\nNode.js · Express\n:3000"]
-    BE -->|HTTP REST| API["🤖 API Facial\nFastAPI · Python\n:8000"]
-    BE <-->|Admin SDK| FS[("☁️ Firebase\nFirestore")]
-    API <-->|Admin SDK| FS
-```
+![Arquitetura dos Serviços](imagens/01-arquitetura.svg)
 
 ### 7.2 Fluxo de Reconhecimento e Registro de Presença
 
-```mermaid
-graph LR
-    A["📷 Webcam\ncaptura frame"] --> B["Backend\nPOST /validar"]
-    B --> C["API Facial\n/recognize-multiple"]
-    C --> D["InsightFace\nbuffalo_s\n512-dim embedding"]
-    D <--> E[("Firestore\nface_embeddings\nFaceIndex")]
-    D --> F{"Reconhecido\nacima do limiar?"}
-    F -->|Não| G["🔴 desconhecido\nsem registro"]
-    F -->|Sim| H["Backend\nbusca horário\ndo aluno"]
-    H --> I{"Janela\ntemporal?"}
-    I -->|"Entrada\n(−30min → saída)"| J["✅ Registra\nentrada + Diário"]
-    I -->|"Saída\n(saída → +30min)"| K["✅ Registra\nsaída + Diário"]
-    I -->|Fora| L["⚠️ fora_da_janela\nsem registro"]
-    J --> M["Frontend\natualiza overlay\n+ log da sessão"]
-    K --> M
-```
+![Fluxo de Reconhecimento](imagens/02-fluxo-reconhecimento.svg)
+
+Para rostos cujos embeddings não encontrem correspondência acima do limiar de confiança, a API retorna a classificação `desconhecido` e nenhum evento de presença é registrado no Firestore.
 
 ### 7.3 Fluxo de Cadastro de Aluno
 
-```mermaid
-graph LR
-    A["Operador\npreenche dados"] --> B{"Captura\nde foto"}
-    B -->|Webcam| C["5 fotos\nfrente · esq · dir\ncima · baixo"]
-    B -->|Upload| D["Imagens\ndo dispositivo"]
-    C --> E["Backend\nPOST /api/alunos\n→ Firestore"]
-    D --> E
-    E --> F["API Facial\nPOST /enroll"]
-    F --> G{"Rosto\ndetectado?"}
-    G -->|Não| H["❌ Rejeita\nmensagem ao operador"]
-    G -->|Sim| I["Extrai embedding\n512-dim"]
-    I --> J[("Firestore\nface_embeddings")]
-    J --> K["Atualiza\nFaceIndex"]
-    K --> L["✅ Cadastro\nconcluído"]
-    H --> B
-```
-
-Para rostos cujos embeddings não encontrem correspondência acima do limiar de confiança, a API retorna a classificação `desconhecido` e nenhum evento de presença é registrado no Firestore.
+![Fluxo de Cadastro](imagens/03-fluxo-cadastro.svg)
 
 ---
 
