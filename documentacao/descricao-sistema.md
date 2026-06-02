@@ -287,28 +287,89 @@ O Vite é configurado com os plugins `@vitejs/plugin-react` (JSX/TSX + Fast Refr
 
 ## 7. Fluxo de Dados — Ciclo Completo de Reconhecimento de Presença
 
-Para ilustrar a operação integrada do SRGFA, descreve-se o fluxo completo percorrido durante um evento típico de reconhecimento de presença, desde a captura do frame pela câmera até o registro no banco de dados:
+Para ilustrar a operação integrada do SRGFA, apresenta-se o diagrama de sequência do fluxo completo percorrido durante um evento típico de reconhecimento de presença, desde a captura do frame pela câmera até o registro no banco de dados:
 
-```
-Fluxo passo a passo — Reconhecimento facial e registro de presença
+```mermaid
+sequenceDiagram
+    participant Browser as Navegador (Frontend :5173)
+    participant Backend as Backend Node.js (:3000)
+    participant API as API Facial FastAPI (:8000)
+    participant FS as Firebase Firestore
 
-①  O operador acessa a Tela de Reconhecimento no navegador (porta 5173);
-②  O navegador solicita permissão de acesso à câmera via API MediaDevices (WebRTC);
-③  O componente React Webcam inicia a captura contínua de frames de vídeo;
-④  A cada intervalo configurado, um frame JPEG é enviado via HTTP POST ao backend (porta 3000);
-⑤  O backend valida a requisição e a repassa à API facial via FACE_API_URL (porta 8000);
-⑥  InsightFace buffalo_s detecta rostos, extrai embeddings (512 dim.) e o classificador emite veredictos;
-⑦  A API consulta o índice vetorial em memória (FaceIndex) com os embeddings do Firestore;
-⑧  A API retorna { registration, nome, confiança } para cada rosto reconhecido;
-⑨  O backend verifica o horário do aluno no Firestore e valida a janela temporal;
-⑩  Se dentro da janela de entrada: salva presença + registra entrada no Diário Digital;
-    Se dentro da janela de saída: atualiza presença + registra saída no Diário Digital;
-    Se fora da janela: retorna ação 'fora_da_janela' sem salvar presença;
-⑪  O backend responde ao frontend com resultado enriquecido (nome, turma, status, ação);
-⑫  O frontend atualiza o overlay (bounding boxes + nome + confiança) e o log da sessão.
+    Browser->>Browser: Captura frame da webcam (React Webcam)
+    Browser->>Backend: POST /api/reconhecimento/validar (frame JPEG)
+    Backend->>API: POST /recognize-multiple (frame)
+    API->>FS: Busca embeddings cadastrados (face_embeddings)
+    API->>API: FaceIndex: comparação vetorial em lote (cosine similarity 512-dim)
+    API->>API: Classificador .pkl emite veredicto match/non-match + confiança
+    API-->>Backend: [{ matricula, nome, confiança, bounding_box }]
+
+    loop Para cada rosto reconhecido acima do limiar
+        Backend->>FS: Busca horário do aluno (horarios — dia da semana)
+        Backend->>Backend: Valida janela temporal (entrada / saída / fora)
+
+        alt Dentro da janela de entrada (horaEntrada − 30min → horaSaida)
+            Backend->>FS: Cria presença { status: presente, horaEntrada }
+            Backend->>FS: Confirma entrada no Diário Digital
+            Backend-->>Browser: { acao: "entrada", presenca }
+        else Dentro da janela de saída (horaSaida → horaSaida + 30min)
+            Backend->>FS: Atualiza presença { horaSaida, status: saida_registrada }
+            Backend->>FS: Confirma saída no Diário Digital
+            Backend-->>Browser: { acao: "saida", presenca }
+        else Fora das janelas
+            Backend-->>Browser: { acao: "fora_da_janela" }
+        end
+    end
+
+    Browser->>Browser: Atualiza bounding boxes + overlay de nome/confiança
+    Browser->>Browser: Adiciona evento ao log cronológico da sessão
 ```
 
 Para rostos cujos embeddings não encontrem correspondência acima do limiar de confiança, a API retorna a classificação `desconhecido` e nenhum evento de presença é registrado no Firestore.
+
+### 7.1 Fluxo de Cadastro de Aluno
+
+```mermaid
+flowchart TD
+    A([Operador inicia cadastro]) --> B[Preenche dados: nome, matrícula, turma, perfil]
+    B --> C{Captura de foto}
+    C -->|Webcam| D[5 capturas: frente, esq., dir., cima, baixo]
+    C -->|Upload| E[Seleção de imagens do dispositivo]
+    D --> F[Backend POST /api/alunos → Firestore]
+    E --> F
+    F --> G[API Facial POST /enroll por imagem]
+    G --> H[InsightFace detecta rosto]
+    H --> I{Rosto detectado?}
+    I -->|Não| J[Rejeita — mensagem ao operador]
+    I -->|Sim| K[Extrai embedding 512-dim]
+    K --> L[Armazena embedding no Firestore face_embeddings]
+    L --> M[Atualiza FaceIndex em memória]
+    M --> N([Cadastro concluído ✓])
+    J --> C
+```
+
+### 7.2 Diagrama de Arquitetura dos Serviços
+
+```mermaid
+graph TB
+    subgraph Operador["Dispositivo do Operador (Browser)"]
+        UI["Frontend React 19 + Vite\nPorta 5173\nTailwind · Recharts · React Webcam"]
+    end
+
+    subgraph Servidor["Servidor — Docker Compose"]
+        BE["Backend Node.js/Express/TypeScript\nPorta 3000\nnode-cron · Firebase Admin SDK"]
+        API["API Facial FastAPI/Python\nPorta 8000\nInsightFace buffalo_s · FaceIndex"]
+    end
+
+    subgraph Cloud["Google Cloud Platform"]
+        FS[("Firebase Firestore\nalunos · horarios · presencas\ndiario · face_embeddings")]
+    end
+
+    UI -->|"HTTP REST JSON"| BE
+    BE -->|"HTTP REST JSON\nFACE_API_URL"| API
+    BE <-->|"Firebase Admin SDK"| FS
+    API <-->|"Firebase Admin SDK"| FS
+```
 
 ---
 
@@ -330,13 +391,19 @@ Em cada diretório, o comando de inicialização é: `docker compose up --build`
 
 Dado que o SRGFA processa dados biométricos de menores de idade — categoria de dados pessoais sensíveis segundo a Lei Geral de Proteção de Dados Pessoais (LGPD, Lei nº 13.709/2018) —, a implantação e operação do sistema em instituições de ensino público devem observar um conjunto rigoroso de medidas técnicas, organizacionais e jurídicas.
 
+> **Status de implementação:** as medidas listadas nesta seção incluem tanto itens já implementados na versão atual quanto itens planejados para versões futuras. Cada item indica seu estado atual entre colchetes.
+
 ### 9.1 Medidas Técnicas de Segurança
 
-- **Credenciais Firebase:** a Service Account Key é armazenada fora do repositório de código, protegida pelo `.gitignore` e `.dockerignore`, e montada no contêiner como volume somente-leitura (`:ro`);
-- **Embeddings no Firestore:** os dados biométricos são armazenados na nuvem Firebase, com acesso restrito às credenciais da conta de serviço da instituição;
-- **Isolamento de rede:** recomenda-se configurar regras de firewall para restringir o acesso às portas 3000, 5173 e 8000 exclusivamente à VLAN pedagógica;
-- **Controle de CORS:** a variável `FRONTEND_URL` no backend define explicitamente a única origem autorizada a realizar requisições cross-origin;
-- **Senhas de acesso:** as credenciais padrão devem ser obrigatoriamente substituídas antes de qualquer uso em produção, com armazenamento por hash criptográfico (bcrypt ou Argon2).
+| Medida | Descrição | Status |
+|--------|-----------|--------|
+| Credenciais Firebase | Service Account Key armazenada fora do repositório, protegida por `.gitignore` e `.dockerignore`, montada como volume somente-leitura (`:ro`) | ✅ Implementado |
+| Controle de CORS | Variável `FRONTEND_URL` restringe explicitamente as origens autorizadas no Backend | ✅ Implementado |
+| Autenticação de operadores | Tela de login com verificação de credenciais; estado de sessão armazenado em localStorage; rotas protegidas com redirect automático para `/login` | ✅ Implementado |
+| Tokens JWT | Autenticação stateless com tokens JWT (JSON Web Tokens) para gerenciamento seguro de sessões de operadores | 🔜 Escopo futuro |
+| Hash de senhas (bcrypt) | Armazenamento de senhas de operadores com hash criptográfico (bcrypt fator ≥ 10 ou Argon2) | 🔜 Escopo futuro |
+| Isolamento de rede | Regras de firewall restringindo acesso às portas 3000, 5173 e 8000 à VLAN pedagógica | 🔜 Planejado (infraestrutura) |
+| HTTPS | Certificado TLS para comunicação criptografada em produção | 🔜 Escopo futuro |
 
 ### 9.2 Medidas Jurídicas e Organizacionais
 

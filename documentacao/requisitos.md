@@ -25,6 +25,11 @@ Prioridade:
   ALTA  = essencial para funcionamento mínimo do sistema
   MÉDIA = importante, mas o sistema opera sem ela em modo degradado
   BAIXA = desejável; pode ser implementada em versão futura
+
+Status de implementação (indicado na coluna Serviço quando relevante):
+  [Implementado]       = funcionalidade presente na versão atual
+  [Escopo futuro]      = planejado para versão subsequente
+  [Organizacional]     = medida jurídica/processual fora do escopo do código-fonte
 ```
 
 ---
@@ -33,13 +38,16 @@ Prioridade:
 
 ### 2.1 Módulo de Autenticação e Controle de Acesso
 
-| ID     | Descrição do Requisito                                                                                                                   | Serviço              | Prioridade |
-|--------|------------------------------------------------------------------------------------------------------------------------------------------|----------------------|------------|
-| RF-001 | O sistema deve exigir autenticação do operador (usuário e senha) antes de permitir acesso a qualquer funcionalidade protegida da interface. | Frontend / Backend   | ALTA       |
-| RF-002 | O sistema deve validar as credenciais informadas junto ao Backend de Negócios, retornando mensagem de erro clara em caso de credenciais inválidas. | Backend         | ALTA       |
-| RF-003 | Após autenticação bem-sucedida, o sistema deve manter a sessão do operador ativa durante o uso, sem necessidade de novo login enquanto a aba do navegador estiver aberta. | Frontend | ALTA |
-| RF-004 | O sistema deve redirecionar automaticamente o operador não autenticado para a tela de login ao tentar acessar qualquer rota protegida da aplicação. | Frontend | ALTA |
-| RF-005 | O sistema deve disponibilizar função de logout que encerre a sessão corrente e redirecione o operador para a tela de login. | Frontend / Backend | MÉDIA |
+> **Nota de implementação:** a versão atual utiliza autenticação com contexto React no frontend e sessão gerenciada em memória (sem JWT). Os requisitos RF-001 a RF-005 estão implementados com essa abordagem simplificada. A migração para JWT (tokens stateless com expiração e renovação) está planejada como escopo futuro (ver RF-005a).
+
+| ID      | Descrição do Requisito                                                                                                                   | Serviço              | Prioridade |
+|---------|------------------------------------------------------------------------------------------------------------------------------------------|----------------------|------------|
+| RF-001  | O sistema deve exigir autenticação do operador (usuário e senha) antes de permitir acesso a qualquer funcionalidade protegida da interface. | Frontend / Backend [Implementado] | ALTA |
+| RF-002  | O sistema deve validar as credenciais informadas junto ao Backend de Negócios, retornando mensagem de erro clara em caso de credenciais inválidas. | Backend [Implementado] | ALTA |
+| RF-003  | Após autenticação bem-sucedida, o sistema deve manter a sessão do operador ativa durante o uso, sem necessidade de novo login enquanto a aba do navegador estiver aberta. | Frontend [Implementado — localStorage] | ALTA |
+| RF-004  | O sistema deve redirecionar automaticamente o operador não autenticado para a tela de login ao tentar acessar qualquer rota protegida da aplicação. | Frontend [Implementado] | ALTA |
+| RF-005  | O sistema deve disponibilizar função de logout que encerre a sessão corrente e redirecione o operador para a tela de login. | Frontend / Backend [Implementado] | MÉDIA |
+| RF-005a | O sistema deve implementar autenticação baseada em tokens JWT (JSON Web Tokens) com expiração configurável, renovação automática e invalidação no logout, substituindo o gerenciamento de sessão em memória. | Backend / Frontend [Escopo futuro] | ALTA |
 
 ### 2.2 Módulo de Cadastro de Alunos
 
@@ -151,13 +159,13 @@ Prioridade:
 
 ### 3.3 Segurança
 
-| ID      | Descrição                                                                                                                   | Critério de Aceitação                                                    | Categoria | Prio.  |
-|---------|-----------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|-----------|--------|
-| RNF-009 | As credenciais do Firebase Admin SDK nunca devem ser incorporadas à imagem Docker, ao repositório Git ou a qualquer log do sistema. | Inspeção do Dockerfile, .dockerignore e .gitignore confirma exclusão explícita de secrets/. | Segurança | ALTA |
-| RNF-010 | O Backend deve implementar controle de CORS, permitindo requisições apenas da origem definida na variável `FRONTEND_URL`. | Requisição cross-origin de origem não autorizada deve retornar HTTP 403. | Segurança | ALTA |
-| RNF-011 | As senhas de acesso dos operadores devem ser armazenadas com hash criptográfico seguro, nunca em texto plano. | Inspeção dos registros no Firestore confirma ausência de senhas em texto claro. Algoritmo: bcrypt (fator ≥ 10) ou equivalente. | Segurança | ALTA |
-| RNF-012 | O arquivo de credenciais Firebase deve ser montado no contêiner como volume somente-leitura. | Configuração `:ro` no volume `./secrets:/app/secrets:ro` verificada no docker-compose.yml. | Segurança | ALTA |
-| RNF-013 | A comunicação entre os serviços deve ocorrer exclusivamente na rede interna da instituição, sem exposição direta à internet pública. | As portas 3000, 5173 e 8000 não devem ser acessíveis fora da VLAN interna. | Segurança | ALTA |
+| ID      | Descrição                                                                                                                   | Critério de Aceitação                                                    | Categoria | Prio.  | Status |
+|---------|-----------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|-----------|--------|--------|
+| RNF-009 | As credenciais do Firebase Admin SDK nunca devem ser incorporadas à imagem Docker, ao repositório Git ou a qualquer log do sistema. | Inspeção do Dockerfile, .dockerignore e .gitignore confirma exclusão explícita de secrets/. | Segurança | ALTA | Implementado |
+| RNF-010 | O Backend deve implementar controle de CORS, permitindo requisições apenas da origem definida na variável `FRONTEND_URL`. | Requisição cross-origin de origem não autorizada deve retornar HTTP 403. | Segurança | ALTA | Implementado |
+| RNF-011 | As senhas de acesso dos operadores devem ser armazenadas com hash criptográfico seguro (bcrypt fator ≥ 10 ou Argon2), nunca em texto plano. | Inspeção dos registros no Firestore confirma ausência de senhas em texto claro. | Segurança | ALTA | **Escopo futuro** |
+| RNF-012 | O arquivo de credenciais Firebase deve ser montado no contêiner como volume somente-leitura. | Configuração `:ro` no volume `./secrets:/app/secrets:ro` verificada no docker-compose.yml. | Segurança | ALTA | Implementado |
+| RNF-013 | A comunicação entre os serviços deve ocorrer exclusivamente na rede interna da instituição, sem exposição direta à internet pública. | As portas 3000, 5173 e 8000 não devem ser acessíveis fora da VLAN interna. | Segurança | ALTA | Planejado (infra) |
 
 ### 3.4 Usabilidade
 
