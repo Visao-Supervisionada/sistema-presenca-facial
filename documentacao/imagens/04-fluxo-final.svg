@@ -42,30 +42,30 @@
 
   <path d="M 430 214 L 430 228" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
 
-  <!-- Step 4: buffalo_s -->
+  <!-- Step 4: buffalo_l -->
   <rect x="280" y="228" width="300" height="44" rx="10" fill="white" stroke="#b45309" stroke-width="2" filter="url(#sh)"/>
   <rect x="280" y="228" width="300" height="44" rx="10" fill="#b45309" opacity="0.08"/>
   <rect x="280" y="228" width="6" height="44" rx="3" fill="#b45309"/>
-  <text x="430" y="247" font-family="system-ui,sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#92400e">🧠  InsightFace buffalo_s</text>
+  <text x="430" y="247" font-family="system-ui,sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#92400e">🧠  InsightFace buffalo_l</text>
   <text x="430" y="263" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle" fill="#64748b">Detecta rostos · Extrai embedding 512-dim</text>
 
   <path d="M 430 272 L 430 286" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
 
-  <!-- Step 5: Firebase face_embeddings -->
+  <!-- Step 5: Firebase alunos -->
   <rect x="280" y="286" width="300" height="44" rx="10" fill="white" stroke="#ea580c" stroke-width="2" filter="url(#sh)"/>
   <rect x="280" y="286" width="300" height="44" rx="10" fill="#ea580c" opacity="0.08"/>
   <rect x="280" y="286" width="6" height="44" rx="3" fill="#ea580c"/>
-  <text x="430" y="305" font-family="system-ui,sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#c2410c">☁️  Firebase — face_embeddings</text>
+  <text x="430" y="305" font-family="system-ui,sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#c2410c">☁️  Firebase — alunos</text>
   <text x="430" y="321" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle" fill="#64748b">Busca embeddings cadastrados do aluno</text>
 
   <path d="M 430 330 L 430 344" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
 
-  <!-- Step 6: FaceIndex -->
+  <!-- Step 6: Comparação cosine similarity -->
   <rect x="280" y="344" width="300" height="44" rx="10" fill="white" stroke="#8b5cf6" stroke-width="2" filter="url(#sh)"/>
   <rect x="280" y="344" width="300" height="44" rx="10" fill="#8b5cf6" opacity="0.08"/>
   <rect x="280" y="344" width="6" height="44" rx="3" fill="#8b5cf6"/>
-  <text x="430" y="363" font-family="system-ui,sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#6d28d9">⚡  FaceIndex — índice vetorial em memória</text>
-  <text x="430" y="379" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle" fill="#64748b">Comparação por cosine similarity · NumPy</text>
+  <text x="430" y="363" font-family="system-ui,sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#6d28d9">⚡  Comparação — cosine similarity</text>
+  <text x="430" y="379" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle" fill="#64748b">Embedding vs. cadastro · NumPy · limiar 0.35</text>
 
   <path d="M 430 388 L 430 402" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
 

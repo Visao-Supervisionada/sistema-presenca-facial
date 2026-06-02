@@ -42,7 +42,7 @@ A arquitetura do SRGFA segue o padrão de três camadas (Three-Tier Architecture
 ┌─────────────────────────────────────────────────────────────────────┐
 │ CAMADA DE VISÃO COMP.  │ API de Reconhecimento Facial — Python      │
 │                        │ Contêiner: api-presenca-facial            │
-│                        │ Porta: 8000  │  Motor: InsightFace/buffalo_s│
+│                        │ Porta: 8000  │  Motor: InsightFace/buffalo_l│
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -87,26 +87,25 @@ Configuração do contêiner — api-presenca-facial
 Contêiner  : api-presenca-facial
 Porta      : 8000 → 8000 (host → contêiner)
 Framework  : FastAPI + Uvicorn (ASGI)
-Motor IA   : InsightFace buffalo_s
-Modelo     : /modelos/classificador_match_embeddings_buffalo_s.pkl
-Embeddings : Firebase Firestore — coleção face_embeddings
+Motor IA   : InsightFace buffalo_l
+Modelo     : /modelos/classificador_match_embeddings_final.pkl
 ```
 
-### 4.1 Motor de Detecção Facial — InsightFace / buffalo_s
+### 4.1 Motor de Detecção Facial — InsightFace / buffalo_l
 
-O subsistema de detecção facial é implementado sobre a biblioteca InsightFace, utilizando o modelo **buffalo_s** — versão leve otimizada para inferência em tempo real, com desempenho adequado para uso em CPU e suporte a aceleração por GPU NVIDIA via CUDA. O modelo e seus parâmetros de execução são inteiramente configuráveis via variáveis de ambiente, sem necessidade de alteração no código-fonte. O pipeline opera em três fases sequenciais:
+O subsistema de detecção facial é implementado sobre a biblioteca InsightFace, utilizando o modelo **buffalo_l** — versão leve otimizada para inferência em tempo real, com desempenho adequado para uso em CPU e suporte a aceleração por GPU NVIDIA via CUDA. O modelo e seus parâmetros de execução são inteiramente configuráveis via variáveis de ambiente, sem necessidade de alteração no código-fonte. O pipeline opera em três fases sequenciais:
 
 - **Detecção e localização:** uma rede neural convolucional do tipo SCRFD (Sample and Computation Redistribution for Efficient Face Detection) identifica a posição e a caixa delimitadora (bounding box) de cada rosto presente na imagem de entrada, sendo capaz de processar múltiplos rostos simultaneamente em um único frame;
 - **Alinhamento geométrico:** os cinco pontos faciais de referência detectados são utilizados para aplicar uma transformação afim que normaliza geometricamente cada rosto, alinhando-o a uma posição canônica de 112×112 pixels, tornando o sistema invariante a rotação e variações de perspectiva;
 - **Extração de embedding:** o rosto normalizado é processado por uma rede neural profunda baseada em ArcFace/CosFace, gerando um vetor denso de 512 dimensões que representa de forma compacta e discriminativa as características biométricas únicas do indivíduo.
 
-### 4.2 Índice Vetorial em Memória — FaceIndex
+### 4.2 Comparação de Embeddings
 
-Para otimizar o desempenho das buscas de reconhecimento, a API mantém um índice vetorial em memória implementado no módulo `face_index.py`. Este índice pré-compila todos os embeddings cadastrados em uma matriz NumPy, permitindo comparações vetorizadas em lote em vez de iterações individuais. O índice é reconstruído automaticamente na inicialização da API e pode ser recarregado sob demanda via endpoint `POST /reload-index`, sem necessidade de reinicialização do contêiner.
+Após a extração dos embeddings, a API realiza a comparação entre o embedding capturado e os embeddings cadastrados, calculando a similaridade por cosseno entre os vetores. O resultado com maior similaridade acima do limiar configurado é retornado como identidade reconhecida. Caso nenhum resultado supere o limiar mínimo, o rosto é classificado como `desconhecido`.
 
 ### 4.3 Classificador de Identidade
 
-Sobre os embeddings extraídos pelo InsightFace opera um classificador treinado de forma supervisionada, serializado no formato pickle Python e armazenado no caminho `/modelos/classificador_match_embeddings_buffalo_s.pkl`. A abordagem adotada é a de aprendizado de métrica por pares (pairwise metric learning): o classificador recebe dois embeddings como entrada e produz uma decisão binária — match (mesmo indivíduo) ou non-match (indivíduos distintos) — juntamente com um escore de confiança numérico.
+Sobre os embeddings extraídos pelo InsightFace opera um classificador treinado de forma supervisionada, serializado no formato pickle Python e armazenado no caminho `/modelos/classificador_match_embeddings_final.pkl`. A abordagem adotada é a de aprendizado de métrica por pares (pairwise metric learning): o classificador recebe dois embeddings como entrada e produz uma decisão binária — match (mesmo indivíduo) ou non-match (indivíduos distintos) — juntamente com um escore de confiança numérico.
 
 Os thresholds de decisão são configuráveis via variáveis de ambiente:
 
@@ -120,9 +119,9 @@ Os thresholds de decisão são configuráveis via variáveis de ambiente:
 
 A grande vantagem desta arquitetura híbrida reside em sua capacidade de evolução incremental: o modelo profundo de extração de features não precisa ser retreinado quando novos alunos são cadastrados. Basta coletar novos pares de embeddings e re-executar o pipeline de treinamento do classificador.
 
-### 4.4 Persistência de Dados Biométricos — Firebase Firestore
+### 4.4 Persistência de Dados Biométricos
 
-Os embeddings faciais dos alunos cadastrados são armazenados no **Firebase Firestore**, na coleção `face_embeddings`. Esta abordagem centraliza os dados biométricos no mesmo serviço de nuvem utilizado pelo backend, eliminando a dependência de volumes Docker locais para os dados biométricos e garantindo que múltiplas instâncias da API compartilhem a mesma base de embeddings. Cada aluno cadastrado pode ter múltiplos embeddings (capturados em diferentes ângulos e condições), aumentando a robustez do reconhecimento.
+Os embeddings faciais dos alunos cadastrados são gerenciados diretamente pela API de Reconhecimento Facial, associados à matrícula do aluno (campo `registration`). O cadastro é realizado via endpoint `POST /enroll`, que recebe a imagem, extrai o embedding e o armazena internamente. Cada aluno pode ter múltiplos embeddings (capturados em diferentes ângulos e condições de iluminação), aumentando a robustez do reconhecimento.
 
 ### 4.5 Endpoints Disponibilizados
 
@@ -135,7 +134,6 @@ Os embeddings faciais dos alunos cadastrados são armazenados no **Firebase Fire
 | POST   | /recognize          | Reconhecimento individual: retorna identidade e confiança       |
 | POST   | /recognize-multiple | Reconhecimento múltiplo: detecta todos os rostos em um frame    |
 | POST   | /compare            | Compara duas imagens e retorna escore de similaridade           |
-| POST   | /reload-index       | Recarrega o índice vetorial em memória a partir do Firestore    |
 | DELETE | /people             | Remove todos os cadastros da base facial                        |
 | DELETE | /people/{reg}       | Remove o cadastro de uma pessoa específica por matrícula        |
 | GET    | /docs               | Interface Swagger UI para inspeção e testes interativos         |
@@ -179,7 +177,6 @@ O sistema adota o Firebase Firestore como banco de dados principal. As coleçõe
 | `notas`                    | Notas parciais por bimestre e aluno                                |
 | `objetos_conhecimento`     | Objetos de conhecimento do calendário pedagógico                   |
 | `componentes_curriculares` | Componentes curriculares cadastrados por turma                     |
-| `face_embeddings`          | Embeddings biométricos dos alunos — gerenciado pela API facial  |
 
 ### 5.3 Fechamento Automático de Turnos — node-cron
 
@@ -365,9 +362,9 @@ Dado que o SRGFA processa dados biométricos de menores de idade — categoria d
 
 ## 10. Conclusão
 
-O Sistema de Reconhecimento Facial para Alunos da Rede Pública de Ensino representa uma solução tecnológica moderna, modular e de custo operacional reduzido, projetada especificamente para os desafios e restrições do ambiente escolar público brasileiro. Sua arquitetura de três camadas conteinerizadas — API de Reconhecimento Facial em Python/FastAPI/InsightFace buffalo_s, Backend de Negócios em Node.js/Express/TypeScript/Firebase e Frontend em React/TypeScript/Vite — demonstra aderência às melhores práticas contemporâneas de engenharia de software, garantindo independência entre componentes, facilidade de manutenção e capacidade de evolução incremental.
+O Sistema de Reconhecimento Facial para Alunos da Rede Pública de Ensino representa uma solução tecnológica moderna, modular e de custo operacional reduzido, projetada especificamente para os desafios e restrições do ambiente escolar público brasileiro. Sua arquitetura de três camadas conteinerizadas — API de Reconhecimento Facial em Python/FastAPI/InsightFace buffalo_l, Backend de Negócios em Node.js/Express/TypeScript/Firebase e Frontend em React/TypeScript/Vite — demonstra aderência às melhores práticas contemporâneas de engenharia de software, garantindo independência entre componentes, facilidade de manutenção e capacidade de evolução incremental.
 
-A escolha do Firebase Firestore como banco de dados, tanto para dados escolares quanto para embeddings biométricos, elimina a complexidade operacional da administração de infraestrutura local, aproveitando a escalabilidade e a alta disponibilidade gerenciadas pela Google Cloud Platform. A arquitetura híbrida com InsightFace/buffalo_s para extração de embeddings e um classificador treinável de forma independente oferece equilíbrio adequado entre precisão biométrica, custo computacional e adaptabilidade a novas condições de captura.
+A escolha do Firebase Firestore como banco de dados, tanto para dados escolares quanto para embeddings biométricos, elimina a complexidade operacional da administração de infraestrutura local, aproveitando a escalabilidade e a alta disponibilidade gerenciadas pela Google Cloud Platform. A arquitetura híbrida com InsightFace/buffalo_l para extração de embeddings e um classificador treinável de forma independente oferece equilíbrio adequado entre precisão biométrica, custo computacional e adaptabilidade a novas condições de captura.
 
 ---
 

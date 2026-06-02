@@ -12,7 +12,7 @@ Itacoatiara — Amazonas — Brasil | Junho de 2026
 
 O presente documento formaliza os Requisitos Funcionais (RF), os Requisitos Não Funcionais (RNF) e as Regras de Negócio (RN) do Sistema de Reconhecimento Facial para Alunos da Rede Pública de Ensino (SRGFA). A especificação foi elaborada com base na análise dos artefatos técnicos do projeto — arquivos de configuração Docker, código-fonte dos três serviços, histórico de branches e fluxos operacionais implementados — seguindo as boas práticas de Engenharia de Software descritas na norma IEEE 830 (Software Requirements Specification).
 
-O SRGFA é composto por três serviços interdependentes: (i) a API de Reconhecimento Facial, em Python/FastAPI/InsightFace buffalo_s; (ii) o Backend de Negócios, em Node.js/Express/TypeScript/Firebase Firestore; e (iii) o Frontend de Apresentação, em React/TypeScript/Vite.
+O SRGFA é composto por três serviços interdependentes: (i) a API de Reconhecimento Facial, em Python/FastAPI/InsightFace buffalo_l; (ii) o Backend de Negócios, em Node.js/Express/TypeScript/Firebase Firestore; e (iii) o Frontend de Apresentação, em React/TypeScript/Vite.
 
 ```
 Convenção de identificadores adotada neste documento
@@ -132,7 +132,6 @@ Status de implementação (indicado na coluna Serviço quando relevante):
 | RF-052 | O Backend deve expor o endpoint `GET /health` retornando status, nome do serviço, URL da API facial e rotas disponíveis. | Backend | ALTA |
 | RF-053 | O Backend deve se comunicar com a API Facial utilizando a variável de ambiente `FACE_API_URL`, resolvida via `host.docker.internal` dentro do contexto Docker. | Backend | ALTA |
 | RF-054 | A API Facial deve expor o endpoint `GET /health` retornando modelo carregado, tipo de armazenamento, thresholds, total de pessoas indexadas e status do classificador auxiliar. | API Facial | ALTA |
-| RF-055 | A API Facial deve expor o endpoint `POST /reload-index` para reconstrução do índice vetorial em memória sem reinicialização do contêiner. | API Facial | MÉDIA |
 | RF-056 | O sistema deve disponibilizar a documentação interativa da API Facial no endpoint `GET /docs` (Swagger UI). | API Facial | MÉDIA |
 
 ---
