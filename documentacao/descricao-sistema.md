@@ -287,89 +287,57 @@ O Vite é configurado com os plugins `@vitejs/plugin-react` (JSX/TSX + Fast Refr
 
 ## 7. Fluxo de Dados — Ciclo Completo de Reconhecimento de Presença
 
-Para ilustrar a operação integrada do SRGFA, apresenta-se o diagrama de sequência do fluxo completo percorrido durante um evento típico de reconhecimento de presença, desde a captura do frame pela câmera até o registro no banco de dados:
+Para ilustrar a operação integrada do SRGFA, apresenta-se o fluxo completo percorrido durante um evento típico de reconhecimento de presença, desde a captura do frame pela câmera até o registro no banco de dados.
+
+### 7.1 Arquitetura dos Serviços
 
 ```mermaid
-sequenceDiagram
-    participant Browser as Navegador (Frontend :5173)
-    participant Backend as Backend Node.js (:3000)
-    participant API as API Facial FastAPI (:8000)
-    participant FS as Firebase Firestore
+graph LR
+    Browser["🖥️ Frontend\nReact 19 · Vite\n:5173"] -->|HTTP REST| BE["⚙️ Backend\nNode.js · Express\n:3000"]
+    BE -->|HTTP REST| API["🤖 API Facial\nFastAPI · Python\n:8000"]
+    BE <-->|Admin SDK| FS[("☁️ Firebase\nFirestore")]
+    API <-->|Admin SDK| FS
+```
 
-    Browser->>Browser: Captura frame da webcam (React Webcam)
-    Browser->>Backend: POST /api/reconhecimento/validar (frame JPEG)
-    Backend->>API: POST /recognize-multiple (frame)
-    API->>FS: Busca embeddings cadastrados (face_embeddings)
-    API->>API: FaceIndex: comparação vetorial em lote (cosine similarity 512-dim)
-    API->>API: Classificador .pkl emite veredicto match/non-match + confiança
-    API-->>Backend: [{ matricula, nome, confiança, bounding_box }]
+### 7.2 Fluxo de Reconhecimento e Registro de Presença
 
-    loop Para cada rosto reconhecido acima do limiar
-        Backend->>FS: Busca horário do aluno (horarios — dia da semana)
-        Backend->>Backend: Valida janela temporal (entrada / saída / fora)
+```mermaid
+graph LR
+    A["📷 Webcam\ncaptura frame"] --> B["Backend\nPOST /validar"]
+    B --> C["API Facial\n/recognize-multiple"]
+    C --> D["InsightFace\nbuffalo_s\n512-dim embedding"]
+    D <--> E[("Firestore\nface_embeddings\nFaceIndex")]
+    D --> F{"Reconhecido\nacima do limiar?"}
+    F -->|Não| G["🔴 desconhecido\nsem registro"]
+    F -->|Sim| H["Backend\nbusca horário\ndo aluno"]
+    H --> I{"Janela\ntemporal?"}
+    I -->|"Entrada\n(−30min → saída)"| J["✅ Registra\nentrada + Diário"]
+    I -->|"Saída\n(saída → +30min)"| K["✅ Registra\nsaída + Diário"]
+    I -->|Fora| L["⚠️ fora_da_janela\nsem registro"]
+    J --> M["Frontend\natualiza overlay\n+ log da sessão"]
+    K --> M
+```
 
-        alt Dentro da janela de entrada (horaEntrada − 30min → horaSaida)
-            Backend->>FS: Cria presença { status: presente, horaEntrada }
-            Backend->>FS: Confirma entrada no Diário Digital
-            Backend-->>Browser: { acao: "entrada", presenca }
-        else Dentro da janela de saída (horaSaida → horaSaida + 30min)
-            Backend->>FS: Atualiza presença { horaSaida, status: saida_registrada }
-            Backend->>FS: Confirma saída no Diário Digital
-            Backend-->>Browser: { acao: "saida", presenca }
-        else Fora das janelas
-            Backend-->>Browser: { acao: "fora_da_janela" }
-        end
-    end
+### 7.3 Fluxo de Cadastro de Aluno
 
-    Browser->>Browser: Atualiza bounding boxes + overlay de nome/confiança
-    Browser->>Browser: Adiciona evento ao log cronológico da sessão
+```mermaid
+graph LR
+    A["Operador\npreenche dados"] --> B{"Captura\nde foto"}
+    B -->|Webcam| C["5 fotos\nfrente · esq · dir\ncima · baixo"]
+    B -->|Upload| D["Imagens\ndo dispositivo"]
+    C --> E["Backend\nPOST /api/alunos\n→ Firestore"]
+    D --> E
+    E --> F["API Facial\nPOST /enroll"]
+    F --> G{"Rosto\ndetectado?"}
+    G -->|Não| H["❌ Rejeita\nmensagem ao operador"]
+    G -->|Sim| I["Extrai embedding\n512-dim"]
+    I --> J[("Firestore\nface_embeddings")]
+    J --> K["Atualiza\nFaceIndex"]
+    K --> L["✅ Cadastro\nconcluído"]
+    H --> B
 ```
 
 Para rostos cujos embeddings não encontrem correspondência acima do limiar de confiança, a API retorna a classificação `desconhecido` e nenhum evento de presença é registrado no Firestore.
-
-### 7.1 Fluxo de Cadastro de Aluno
-
-```mermaid
-flowchart TD
-    A([Operador inicia cadastro]) --> B[Preenche dados: nome, matrícula, turma, perfil]
-    B --> C{Captura de foto}
-    C -->|Webcam| D[5 capturas: frente, esq., dir., cima, baixo]
-    C -->|Upload| E[Seleção de imagens do dispositivo]
-    D --> F[Backend POST /api/alunos → Firestore]
-    E --> F
-    F --> G[API Facial POST /enroll por imagem]
-    G --> H[InsightFace detecta rosto]
-    H --> I{Rosto detectado?}
-    I -->|Não| J[Rejeita — mensagem ao operador]
-    I -->|Sim| K[Extrai embedding 512-dim]
-    K --> L[Armazena embedding no Firestore face_embeddings]
-    L --> M[Atualiza FaceIndex em memória]
-    M --> N([Cadastro concluído ✓])
-    J --> C
-```
-
-### 7.2 Diagrama de Arquitetura dos Serviços
-
-```mermaid
-graph TB
-    subgraph Operador["Dispositivo do Operador (Browser)"]
-        UI["Frontend React 19 + Vite\nPorta 5173\nTailwind · Recharts · React Webcam"]
-    end
-
-    subgraph Servidor["Servidor — Docker Compose"]
-        BE["Backend Node.js/Express/TypeScript\nPorta 3000\nnode-cron · Firebase Admin SDK"]
-        API["API Facial FastAPI/Python\nPorta 8000\nInsightFace buffalo_s · FaceIndex"]
-    end
-
-    subgraph Cloud["Google Cloud Platform"]
-        FS[("Firebase Firestore\nalunos · horarios · presencas\ndiario · face_embeddings")]
-    end
-
-    UI -->|"HTTP REST JSON"| BE
-    BE -->|"HTTP REST JSON\nFACE_API_URL"| API
-    BE <-->|"Firebase Admin SDK"| FS
-    API <-->|"Firebase Admin SDK"| FS
-```
 
 ---
 
