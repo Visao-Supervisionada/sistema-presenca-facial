@@ -7,8 +7,6 @@ Documento Acadêmico — Versão 2.0.0
 Itacoatiara — Amazonas — Brasil
 Junho de 2026
 
-> **Nota sobre estado de implementação:** este documento descreve o sistema em sua versão atual (branch `main`) e, quando indicado, antecipa funcionalidades da branch `ajuste-arquitetura-buffalo-s` (em desenvolvimento por Felipe Barbosa, pendente de merge). Trechos referentes à branch pendente estão marcados com a nota **(⚠️ branch pendente)**.
-
 ---
 
 ## 1. Introdução
@@ -44,7 +42,7 @@ A arquitetura do SRGFA segue o padrão de três camadas (Three-Tier Architecture
 ┌─────────────────────────────────────────────────────────────────────┐
 │ CAMADA DE VISÃO COMP.  │ API de Reconhecimento Facial — Python      │
 │                        │ Contêiner: api-presenca-facial            │
-│                        │ Porta: 8000  │  Motor: InsightFace/buffalo_l│
+│                        │ Porta: 8000  │  Motor: InsightFace/buffalo_s│
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -89,22 +87,22 @@ Configuração do contêiner — api-presenca-facial
 Contêiner  : api-presenca-facial
 Porta      : 8000 → 8000 (host → contêiner)
 Framework  : FastAPI + Uvicorn (ASGI)
-Motor IA   : InsightFace buffalo_l (atual) / buffalo_s (⚠️ branch pendente)
-Modelo     : /modelos/classificador_match_embeddings_buffalo_s.pkl (⚠️ branch pendente)
-Embeddings : Firebase Firestore — coleção face_embeddings (⚠️ branch pendente)
+Motor IA   : InsightFace buffalo_s
+Modelo     : /modelos/classificador_match_embeddings_buffalo_s.pkl
+Embeddings : Firebase Firestore — coleção face_embeddings
 ```
 
-### 4.1 Motor de Detecção Facial — InsightFace / buffalo_l
+### 4.1 Motor de Detecção Facial — InsightFace / buffalo_s
 
-O subsistema de detecção facial é implementado sobre a biblioteca InsightFace, utilizando atualmente o modelo **buffalo_l** — versão completa e de maior precisão. A branch `ajuste-arquitetura-buffalo-s` (⚠️ branch pendente) migrará para o **buffalo_s**, versão mais leve otimizada para inferência em tempo real, com desempenho adequado para uso em CPU e suporte a GPU NVIDIA via CUDA. O modelo é configurável via variável de ambiente `FACE_MODEL_NAME`, sem necessidade de alteração no código-fonte. O pipeline opera em três fases sequenciais:
+O subsistema de detecção facial é implementado sobre a biblioteca InsightFace, utilizando o modelo **buffalo_s** — versão leve otimizada para inferência em tempo real, com desempenho adequado para uso em CPU e suporte a aceleração por GPU NVIDIA via CUDA. O modelo e seus parâmetros de execução são inteiramente configuráveis via variáveis de ambiente, sem necessidade de alteração no código-fonte. O pipeline opera em três fases sequenciais:
 
 - **Detecção e localização:** uma rede neural convolucional do tipo SCRFD (Sample and Computation Redistribution for Efficient Face Detection) identifica a posição e a caixa delimitadora (bounding box) de cada rosto presente na imagem de entrada, sendo capaz de processar múltiplos rostos simultaneamente em um único frame;
 - **Alinhamento geométrico:** os cinco pontos faciais de referência detectados são utilizados para aplicar uma transformação afim que normaliza geometricamente cada rosto, alinhando-o a uma posição canônica de 112×112 pixels, tornando o sistema invariante a rotação e variações de perspectiva;
 - **Extração de embedding:** o rosto normalizado é processado por uma rede neural profunda baseada em ArcFace/CosFace, gerando um vetor denso de 512 dimensões que representa de forma compacta e discriminativa as características biométricas únicas do indivíduo.
 
-### 4.2 Índice Vetorial em Memória — FaceIndex ⚠️ branch pendente
+### 4.2 Índice Vetorial em Memória — FaceIndex
 
-A branch `ajuste-arquitetura-buffalo-s` introduz um índice vetorial em memória implementado no módulo `face_index.py`. Este índice pré-compila todos os embeddings cadastrados em uma matriz NumPy, permitindo comparações vetorizadas em lote em vez de iterações individuais. O índice é reconstruído automaticamente na inicialização da API e pode ser recarregado sob demanda via endpoint `POST /reload-index`, sem necessidade de reinicialização do contêiner. Na versão atual (main), o reconhecimento utiliza comparação individual sem FaceIndex.
+Para otimizar o desempenho das buscas de reconhecimento, a API mantém um índice vetorial em memória implementado no módulo `face_index.py`. Este índice pré-compila todos os embeddings cadastrados em uma matriz NumPy, permitindo comparações vetorizadas em lote em vez de iterações individuais. O índice é reconstruído automaticamente na inicialização da API e pode ser recarregado sob demanda via endpoint `POST /reload-index`, sem necessidade de reinicialização do contêiner.
 
 ### 4.3 Classificador de Identidade
 
@@ -128,19 +126,19 @@ Os embeddings faciais dos alunos cadastrados são armazenados no **Firebase Fire
 
 ### 4.5 Endpoints Disponibilizados
 
-| Método | Endpoint            | Descrição Funcional                                             | Status     |
-|--------|---------------------|-----------------------------------------------------------------|------------|
-| GET    | /                   | Informações básicas do serviço                                  | Atual      |
-| GET    | /health             | Status do serviço, modelo carregado, thresholds e métricas      | Atual      |
-| GET    | /people             | Lista todas as pessoas cadastradas (sem embeddings)             | Atual      |
-| POST   | /enroll             | Cadastrar pessoa: extrai e armazena embedding                   | Atual      |
-| POST   | /recognize          | Reconhecimento individual: retorna identidade e confiança       | Atual      |
-| POST   | /recognize-multiple | Reconhecimento múltiplo: detecta todos os rostos em um frame    | Atual      |
-| POST   | /compare            | Compara duas imagens e retorna escore de similaridade           | Atual      |
-| DELETE | /people             | Remove todos os cadastros da base facial                        | Atual      |
-| DELETE | /people/{reg}       | Remove o cadastro de uma pessoa específica por matrícula        | Atual      |
-| GET    | /docs               | Interface Swagger UI para inspeção e testes interativos         | Atual      |
-| POST   | /reload-index       | Recarrega o índice vetorial em memória a partir do Firestore    | ⚠️ branch pendente |
+| Método | Endpoint            | Descrição Funcional                                             |
+|--------|---------------------|-----------------------------------------------------------------|
+| GET    | /                   | Informações básicas do serviço                                  |
+| GET    | /health             | Status do serviço, modelo carregado, thresholds e métricas      |
+| GET    | /people             | Lista todas as pessoas cadastradas (sem embeddings)             |
+| POST   | /enroll             | Cadastrar pessoa: extrai e armazena embedding no Firestore      |
+| POST   | /recognize          | Reconhecimento individual: retorna identidade e confiança       |
+| POST   | /recognize-multiple | Reconhecimento múltiplo: detecta todos os rostos em um frame    |
+| POST   | /compare            | Compara duas imagens e retorna escore de similaridade           |
+| POST   | /reload-index       | Recarrega o índice vetorial em memória a partir do Firestore    |
+| DELETE | /people             | Remove todos os cadastros da base facial                        |
+| DELETE | /people/{reg}       | Remove o cadastro de uma pessoa específica por matrícula        |
+| GET    | /docs               | Interface Swagger UI para inspeção e testes interativos         |
 
 ---
 
@@ -181,7 +179,7 @@ O sistema adota o Firebase Firestore como banco de dados principal. As coleçõe
 | `notas`                    | Notas parciais por bimestre e aluno                                |
 | `objetos_conhecimento`     | Objetos de conhecimento do calendário pedagógico                   |
 | `componentes_curriculares` | Componentes curriculares cadastrados por turma                     |
-| `face_embeddings`          | Embeddings biométricos dos alunos — gerenciado pela API facial (⚠️ branch pendente) |
+| `face_embeddings`          | Embeddings biométricos dos alunos — gerenciado pela API facial  |
 
 ### 5.3 Fechamento Automático de Turnos — node-cron
 
