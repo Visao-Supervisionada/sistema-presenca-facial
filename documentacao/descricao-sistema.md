@@ -7,6 +7,8 @@ Documento Acadêmico — Versão 2.0.0
 Itacoatiara — Amazonas — Brasil
 Junho de 2026
 
+> **Nota sobre estado de implementação:** este documento descreve o sistema em sua versão atual (branch `main`) e, quando indicado, antecipa funcionalidades da branch `ajuste-arquitetura-buffalo-s` (em desenvolvimento por Felipe Barbosa, pendente de merge). Trechos referentes à branch pendente estão marcados com a nota **(⚠️ branch pendente)**.
+
 ---
 
 ## 1. Introdução
@@ -42,7 +44,7 @@ A arquitetura do SRGFA segue o padrão de três camadas (Three-Tier Architecture
 ┌─────────────────────────────────────────────────────────────────────┐
 │ CAMADA DE VISÃO COMP.  │ API de Reconhecimento Facial — Python      │
 │                        │ Contêiner: api-presenca-facial            │
-│                        │ Porta: 8000  │  Motor: InsightFace/buffalo_s│
+│                        │ Porta: 8000  │  Motor: InsightFace/buffalo_l│
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -87,22 +89,22 @@ Configuração do contêiner — api-presenca-facial
 Contêiner  : api-presenca-facial
 Porta      : 8000 → 8000 (host → contêiner)
 Framework  : FastAPI + Uvicorn (ASGI)
-Motor IA   : InsightFace buffalo_s + classificador .pkl
-Modelo     : /modelos/classificador_match_embeddings_buffalo_s.pkl
-Embeddings : Firebase Firestore — coleção face_embeddings
+Motor IA   : InsightFace buffalo_l (atual) / buffalo_s (⚠️ branch pendente)
+Modelo     : /modelos/classificador_match_embeddings_buffalo_s.pkl (⚠️ branch pendente)
+Embeddings : Firebase Firestore — coleção face_embeddings (⚠️ branch pendente)
 ```
 
-### 4.1 Motor de Detecção Facial — InsightFace / buffalo_s
+### 4.1 Motor de Detecção Facial — InsightFace / buffalo_l
 
-O subsistema de detecção facial é implementado sobre a biblioteca InsightFace, utilizando o modelo **buffalo_s** — versão otimizada para inferência em tempo real que integra em um único pipeline as etapas de detecção de rosto, alinhamento de pontos faciais (facial landmarks) e extração de representações vetoriais densas (face embeddings). O modelo e seus parâmetros de execução são inteiramente configuráveis via variáveis de ambiente, sem necessidade de alteração no código-fonte. O pipeline opera em três fases sequenciais:
+O subsistema de detecção facial é implementado sobre a biblioteca InsightFace, utilizando atualmente o modelo **buffalo_l** — versão completa e de maior precisão. A branch `ajuste-arquitetura-buffalo-s` (⚠️ branch pendente) migrará para o **buffalo_s**, versão mais leve otimizada para inferência em tempo real, com desempenho adequado para uso em CPU e suporte a GPU NVIDIA via CUDA. O modelo é configurável via variável de ambiente `FACE_MODEL_NAME`, sem necessidade de alteração no código-fonte. O pipeline opera em três fases sequenciais:
 
 - **Detecção e localização:** uma rede neural convolucional do tipo SCRFD (Sample and Computation Redistribution for Efficient Face Detection) identifica a posição e a caixa delimitadora (bounding box) de cada rosto presente na imagem de entrada, sendo capaz de processar múltiplos rostos simultaneamente em um único frame;
 - **Alinhamento geométrico:** os cinco pontos faciais de referência detectados são utilizados para aplicar uma transformação afim que normaliza geometricamente cada rosto, alinhando-o a uma posição canônica de 112×112 pixels, tornando o sistema invariante a rotação e variações de perspectiva;
 - **Extração de embedding:** o rosto normalizado é processado por uma rede neural profunda baseada em ArcFace/CosFace, gerando um vetor denso de 512 dimensões que representa de forma compacta e discriminativa as características biométricas únicas do indivíduo.
 
-### 4.2 Índice Vetorial em Memória — FaceIndex
+### 4.2 Índice Vetorial em Memória — FaceIndex ⚠️ branch pendente
 
-Para otimizar o desempenho das buscas de reconhecimento, a API mantém um índice vetorial em memória implementado no módulo `face_index.py`. Este índice pré-compila todos os embeddings cadastrados em uma matriz NumPy, permitindo comparações vetorizadas em lote em vez de iterações individuais. O índice é reconstruído automaticamente na inicialização da API e pode ser recarregado sob demanda via endpoint `POST /reload-index`, sem necessidade de reinicialização do contêiner.
+A branch `ajuste-arquitetura-buffalo-s` introduz um índice vetorial em memória implementado no módulo `face_index.py`. Este índice pré-compila todos os embeddings cadastrados em uma matriz NumPy, permitindo comparações vetorizadas em lote em vez de iterações individuais. O índice é reconstruído automaticamente na inicialização da API e pode ser recarregado sob demanda via endpoint `POST /reload-index`, sem necessidade de reinicialização do contêiner. Na versão atual (main), o reconhecimento utiliza comparação individual sem FaceIndex.
 
 ### 4.3 Classificador de Identidade
 
@@ -126,19 +128,19 @@ Os embeddings faciais dos alunos cadastrados são armazenados no **Firebase Fire
 
 ### 4.5 Endpoints Disponibilizados
 
-| Método | Endpoint          | Descrição Funcional                                             |
-|--------|-------------------|-----------------------------------------------------------------|
-| GET    | /                 | Informações básicas do serviço                                  |
-| GET    | /health           | Status do serviço, modelo carregado, thresholds e métricas      |
-| GET    | /people           | Lista todas as pessoas cadastradas (sem embeddings)             |
-| POST   | /enroll           | Cadastrar pessoa: extrai e armazena embedding no Firestore      |
-| POST   | /recognize        | Reconhecimento individual: retorna identidade e confiança       |
-| POST   | /recognize-multiple | Reconhecimento múltiplo: detecta todos os rostos em um frame  |
-| POST   | /compare          | Compara duas imagens e retorna escore de similaridade           |
-| POST   | /reload-index     | Recarrega o índice vetorial em memória a partir do Firestore    |
-| DELETE | /people           | Remove todos os cadastros da base facial                        |
-| DELETE | /people/{reg}     | Remove o cadastro de uma pessoa específica por matrícula        |
-| GET    | /docs             | Interface Swagger UI para inspeção e testes interativos         |
+| Método | Endpoint            | Descrição Funcional                                             | Status     |
+|--------|---------------------|-----------------------------------------------------------------|------------|
+| GET    | /                   | Informações básicas do serviço                                  | Atual      |
+| GET    | /health             | Status do serviço, modelo carregado, thresholds e métricas      | Atual      |
+| GET    | /people             | Lista todas as pessoas cadastradas (sem embeddings)             | Atual      |
+| POST   | /enroll             | Cadastrar pessoa: extrai e armazena embedding                   | Atual      |
+| POST   | /recognize          | Reconhecimento individual: retorna identidade e confiança       | Atual      |
+| POST   | /recognize-multiple | Reconhecimento múltiplo: detecta todos os rostos em um frame    | Atual      |
+| POST   | /compare            | Compara duas imagens e retorna escore de similaridade           | Atual      |
+| DELETE | /people             | Remove todos os cadastros da base facial                        | Atual      |
+| DELETE | /people/{reg}       | Remove o cadastro de uma pessoa específica por matrícula        | Atual      |
+| GET    | /docs               | Interface Swagger UI para inspeção e testes interativos         | Atual      |
+| POST   | /reload-index       | Recarrega o índice vetorial em memória a partir do Firestore    | ⚠️ branch pendente |
 
 ---
 
@@ -168,17 +170,18 @@ Env vars   : PORT, FRONTEND_URL, FACE_API_URL, GOOGLE_APPLICATION_CREDENTIALS
 
 O sistema adota o Firebase Firestore como banco de dados principal. As coleções utilizadas pelo sistema são:
 
-| Coleção           | Descrição                                                    |
-|-------------------|--------------------------------------------------------------|
-| `alunos`          | Dados cadastrais dos alunos (nome, matrícula, turma, perfil) |
-| `horarios`        | Grade horária por aluno, dia da semana e turno               |
-| `presencas`       | Registro bruto de cada evento de reconhecimento facial       |
-| `diario`          | Diário Digital oficial com status consolidado por aluno/dia  |
-| `face_embeddings` | Embeddings biométricos dos alunos (gerenciado pela API facial)|
-| `avaliacoes`      | Avaliações cadastradas por turma e componente curricular     |
-| `notas`           | Notas parciais por bimestre e aluno                          |
-| `objetos`         | Objetos de conhecimento do calendário pedagógico             |
-| `componentes`     | Componentes curriculares cadastrados                         |
+| Coleção                    | Descrição                                                          |
+|----------------------------|--------------------------------------------------------------------|
+| `alunos`                   | Dados cadastrais dos alunos (nome, matrícula, turma, perfil)       |
+| `horarios`                 | Grade horária por aluno, dia da semana e turno                     |
+| `presencas`                | Registro bruto de cada evento de reconhecimento facial             |
+| `diario`                   | Diário Digital oficial com status consolidado por aluno/dia        |
+| `justificativas`           | Justificativas de faltas registradas pelo operador                 |
+| `avaliacoes`               | Avaliações cadastradas por turma e componente curricular           |
+| `notas`                    | Notas parciais por bimestre e aluno                                |
+| `objetos_conhecimento`     | Objetos de conhecimento do calendário pedagógico                   |
+| `componentes_curriculares` | Componentes curriculares cadastrados por turma                     |
+| `face_embeddings`          | Embeddings biométricos dos alunos — gerenciado pela API facial (⚠️ branch pendente) |
 
 ### 5.3 Fechamento Automático de Turnos — node-cron
 
@@ -212,29 +215,41 @@ O gerenciamento seguro das credenciais do Firebase é implementado em múltiplas
 
 ### 5.6 Domínios e Rotas de Negócio
 
-| Método | Endpoint                      | Responsabilidade                                              |
-|--------|-------------------------------|---------------------------------------------------------------|
-| GET    | /health                       | Health check do serviço                                       |
-| GET    | /api/alunos                   | Lista todos os alunos cadastrados                             |
-| POST   | /api/alunos                   | Cadastrar novo aluno                                          |
-| DELETE | /api/alunos/:id               | Remover aluno                                                 |
-| GET    | /api/horarios                 | Lista horários por aluno/turma/dia                            |
-| POST   | /api/horarios                 | Cadastrar horário                                             |
-| DELETE | /api/horarios/:id             | Remover horário                                               |
-| GET    | /api/presencas                | Lista registros de presença                                   |
-| POST   | /api/presencas                | Registrar presença manualmente                                |
-| GET    | /api/diario                   | Diário Digital filtrado por turma/data/turno                  |
-| POST   | /api/diario/fechar-turno      | Fechar turno (matutino, vespertino ou noturno)                |
-| GET    | /api/dashboard/resumo         | Resumo do dia: presentes, ausentes, atrasos, percentual       |
-| GET    | /api/dashboard/semana         | Frequência dos últimos 5 dias úteis                           |
-| POST   | /api/reconhecimento/validar   | Validar reconhecimento e registrar presença com janela horária|
-| GET    | /api/sincronizacao            | Sincronizar dados entre API facial e Firestore                |
-| GET    | /api/componentes              | Listar componentes curriculares                               |
-| GET    | /api/objetos-conhecimento     | Listar objetos de conhecimento                                |
-| GET    | /api/avaliacoes               | Listar avaliações                                             |
-| POST   | /api/avaliacoes               | Criar avaliação                                               |
-| GET    | /api/notas                    | Listar notas parciais                                         |
-| POST   | /api/notas                    | Registrar nota                                                |
+| Método | Endpoint                              | Responsabilidade                                                  |
+|--------|---------------------------------------|-------------------------------------------------------------------|
+| GET    | /health                               | Health check do serviço                                           |
+| GET    | /api/alunos                           | Lista todos os alunos cadastrados                                 |
+| GET    | /api/alunos/turmas                    | Lista turmas únicas cadastradas                                   |
+| POST   | /api/alunos                           | Cadastrar novo aluno                                              |
+| DELETE | /api/alunos/:id                       | Remover aluno                                                     |
+| GET    | /api/horarios                         | Lista horários (filtros: aluno, turma, dia)                       |
+| POST   | /api/horarios                         | Cadastrar horário                                                 |
+| DELETE | /api/horarios/:id                     | Remover horário                                                   |
+| GET    | /api/presencas                        | Lista registros de presença                                       |
+| POST   | /api/presencas/reconhecimento         | Registrar presença via reconhecimento facial (com imagem)         |
+| GET    | /api/diario                           | Diário Digital filtrado por turma/data/turno                      |
+| POST   | /api/diario/entrada                   | Confirmar entrada manualmente                                     |
+| POST   | /api/diario/saida                     | Confirmar saída manualmente                                       |
+| POST   | /api/diario/falta                     | Marcar falta manualmente                                          |
+| POST   | /api/diario/justificar                | Justificar falta de um aluno                                      |
+| POST   | /api/diario/fechar-dia                | Fechar dia inteiro (todos os turnos)                              |
+| POST   | /api/diario/fechar-turno              | Fechar turno específico (matutino, vespertino ou noturno)         |
+| GET    | /api/diario/:turmaId/mensal           | Diário mensal de uma turma                                        |
+| GET    | /api/dashboard/resumo                 | Resumo do dia: presentes, ausentes, atrasos, percentual           |
+| GET    | /api/dashboard/semana                 | Frequência dos últimos 5 dias úteis                               |
+| POST   | /api/reconhecimento/validar           | Validar reconhecimento e registrar presença com janela horária    |
+| POST   | /api/sincronizacao/limpar-base-facial | Limpar base de dados da API facial (remove todos os embeddings)   |
+| GET    | /api/componentes/:turmaId             | Listar componentes curriculares de uma turma                      |
+| POST   | /api/componentes                      | Cadastrar componente curricular                                   |
+| GET    | /api/objetos-conhecimento/:turmaId    | Listar objetos de conhecimento de uma turma                       |
+| POST   | /api/objetos-conhecimento             | Cadastrar objeto de conhecimento                                  |
+| DELETE | /api/objetos-conhecimento/:id         | Remover objeto de conhecimento                                    |
+| GET    | /api/avaliacoes/:turmaId              | Listar avaliações de uma turma                                    |
+| POST   | /api/avaliacoes                       | Criar avaliação                                                   |
+| DELETE | /api/avaliacoes/:id                   | Remover avaliação                                                 |
+| GET    | /api/notas/:turmaId                   | Listar notas de uma turma                                         |
+| POST   | /api/notas                            | Registrar nota parcial                                            |
+| PUT    | /api/notas/:id                        | Atualizar nota parcial                                            |
 
 ---
 

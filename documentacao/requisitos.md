@@ -43,7 +43,7 @@ Status de implementação (indicado na coluna Serviço quando relevante):
 | ID      | Descrição do Requisito                                                                                                                   | Serviço              | Prioridade |
 |---------|------------------------------------------------------------------------------------------------------------------------------------------|----------------------|------------|
 | RF-001  | O sistema deve exigir autenticação do operador (usuário e senha) antes de permitir acesso a qualquer funcionalidade protegida da interface. | Frontend / Backend [Implementado] | ALTA |
-| RF-002  | O sistema deve validar as credenciais informadas junto ao Backend de Negócios, retornando mensagem de erro clara em caso de credenciais inválidas. | Backend [Implementado] | ALTA |
+| RF-002  | O sistema deve validar as credenciais informadas, retornando mensagem de erro clara em caso de credenciais inválidas. A versão atual utiliza credenciais fixas verificadas no frontend (usuário: admin, senha: admin). Validação via Backend com persistência de usuários no Firestore é escopo futuro. | Frontend [Implementado — credenciais fixas] | ALTA |
 | RF-003  | Após autenticação bem-sucedida, o sistema deve manter a sessão do operador ativa durante o uso, sem necessidade de novo login enquanto a aba do navegador estiver aberta. | Frontend [Implementado — localStorage] | ALTA |
 | RF-004  | O sistema deve redirecionar automaticamente o operador não autenticado para a tela de login ao tentar acessar qualquer rota protegida da aplicação. | Frontend [Implementado] | ALTA |
 | RF-005  | O sistema deve disponibilizar função de logout que encerre a sessão corrente e redirecione o operador para a tela de login. | Frontend / Backend [Implementado] | MÉDIA |
@@ -241,7 +241,7 @@ Status de implementação (indicado na coluna Serviço quando relevante):
 | RN-020 | O Diário Digital de uma turma em uma data específica deve refletir o estado consolidado de todos os alunos matriculados naquela turma, independentemente de terem sido reconhecidos ou não. | Diário Digital | ALTA |
 | RN-021 | O cálculo de ausentes no dashboard deve considerar apenas alunos cujo horário-limite de entrada já passou e que não possuem presença registrada no dia, para evitar contagem incorreta de ausentes antes do início do turno. | Dashboard / Backend | ALTA |
 | RN-022 | Os percentuais de frequência exibidos nos relatórios e gráficos devem ser calculados com base nos dias letivos com registro no sistema, não sobre o total de dias corridos do calendário. | Relatórios / Dashboard | MÉDIA |
-| RN-023 | A exportação CSV do relatório de frequência deve conter, para cada aluno: nome, matrícula, turma, total de presenças, total de faltas e percentual de frequência no período. | Relatórios | MÉDIA |
+| RN-023 | A exportação CSV do relatório de frequência deve conter, para cada aluno: nome, matrícula, turma, componente curricular (quando aplicável), colunas de status por dia letivo do mês (formato DD/MM), total de presenças, total de atrasos, total de faltas, total de justificadas, total de dias letivos e percentual de frequência. O arquivo é gerado com BOM UTF-8 para compatibilidade com planilhas. | Relatórios | MÉDIA |
 
 ### 4.5 Proteção de Dados e Conformidade Legal
 

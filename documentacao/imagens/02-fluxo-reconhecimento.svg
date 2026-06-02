@@ -61,7 +61,7 @@
   <rect x="505" y="54" width="168" height="72" rx="10" fill="white" stroke="#f59e0b" stroke-width="2" filter="url(#sh)"/>
   <rect x="505" y="54" width="168" height="26" rx="10" fill="#b45309"/>
   <rect x="505" y="68" width="168" height="12" fill="#b45309"/>
-  <text x="589" y="71" font-family="system-ui,sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="white">buffalo_s + FaceIndex</text>
+  <text x="589" y="71" font-family="system-ui,sans-serif" font-size="11" font-weight="700" text-anchor="middle" fill="white">InsightFace buffalo_l</text>
   <text x="589" y="95" font-family="system-ui,sans-serif" font-size="9.5" text-anchor="middle" fill="#78350f">embedding 512-dim</text>
   <text x="589" y="110" font-family="system-ui,sans-serif" font-size="9" text-anchor="middle" fill="#64748b">cosine similarity</text>
 
