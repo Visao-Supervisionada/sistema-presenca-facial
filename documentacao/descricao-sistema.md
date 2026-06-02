@@ -303,6 +303,10 @@ Para rostos cujos embeddings não encontrem correspondência acima do limiar de 
 
 ![Fluxo de Cadastro](imagens/03-fluxo-cadastro.svg)
 
+### 7.4 Integração com o Sistema Completo — Fluxo Final
+
+![Fluxo Final do Sistema](imagens/04-fluxo-final.svg)
+
 ---
 
 ## 8. Sequência de Inicialização e Dependências entre Serviços
