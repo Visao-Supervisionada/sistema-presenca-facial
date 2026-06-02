@@ -215,6 +215,7 @@ O gerenciamento seguro das credenciais do Firebase é implementado em múltiplas
 | GET    | /health                               | Health check do serviço                                           |
 | GET    | /api/alunos                           | Lista todos os alunos cadastrados                                 |
 | GET    | /api/alunos/turmas                    | Lista turmas únicas cadastradas                                   |
+| GET    | /api/alunos/professores               | Lista professores cadastrados                                     |
 | POST   | /api/alunos                           | Cadastrar novo aluno                                              |
 | DELETE | /api/alunos/:id                       | Remover aluno                                                     |
 | GET    | /api/horarios                         | Lista horários (filtros: aluno, turma, dia)                       |
@@ -287,7 +288,7 @@ Comando    : npm run dev → vite --host=0.0.0.0 --port=5173
 - **Tela de Reconhecimento:** feed de vídeo ao vivo com bounding boxes sobrepostas em tempo real, exibindo nome, escore de confiança e status do reconhecimento. Painel lateral com log cronológico da sessão. Reconhecimentos são salvos apenas dentro da janela horária do aluno;
 - **Tela de Horários:** cadastro e gestão de grades horárias por aluno, dia da semana e turno (matutino, vespertino ou noturno EJA). Suporte a múltiplos dias da semana por horário. Dropdown de alunos cadastrados com preenchimento automático. Identificação visual por cores: amarelo (matutino), azul (vespertino), índigo (noturno);
 - **Diário Digital:** visão consolidada de frequência por turma e data com os módulos Frequência, Objetos de Conhecimento, Avaliações e Notas Parciais. Ações manuais de confirmar entrada, confirmar saída e registrar falta. Botões de fechamento de turno (matutino, vespertino, noturno);
-- **Relatórios:** relatório de frequência com resumo por turma e exportação em CSV para análise externa.
+- **Relatórios:** relatório de frequência com resumo por turma. Exportação em CSV planejada como escopo futuro.
 
 ### 6.3 Configuração de Build e Desenvolvimento
 

@@ -123,7 +123,7 @@ Status de implementação (indicado na coluna Serviço quando relevante):
 |--------|------------------------------------------------------------------------------------------------------------------------------------------|----------------------|------------|
 | RF-049 | O sistema deve disponibilizar uma página de relatórios com o relatório de frequência por turma, exibindo o percentual de presença de cada aluno no período consultado. | Frontend / Backend | ALTA |
 | RF-050 | O relatório de frequência deve incluir um resumo consolidado por turma com total de presenças, faltas e percentual geral. | Frontend / Backend | ALTA |
-| RF-051 | O sistema deve permitir a exportação do relatório de frequência em formato CSV, possibilitando análise externa em planilhas. | Frontend | MÉDIA |
+| RF-051 | O sistema deve permitir a exportação do relatório de frequência em formato CSV, possibilitando análise externa em planilhas. | Frontend [Escopo futuro] | MÉDIA |
 
 ### 2.8 Módulo de Integração entre Serviços
 
@@ -240,7 +240,7 @@ Status de implementação (indicado na coluna Serviço quando relevante):
 | RN-020 | O Diário Digital de uma turma em uma data específica deve refletir o estado consolidado de todos os alunos matriculados naquela turma, independentemente de terem sido reconhecidos ou não. | Diário Digital | ALTA |
 | RN-021 | O cálculo de ausentes no dashboard deve considerar apenas alunos cujo horário-limite de entrada já passou e que não possuem presença registrada no dia, para evitar contagem incorreta de ausentes antes do início do turno. | Dashboard / Backend | ALTA |
 | RN-022 | Os percentuais de frequência exibidos nos relatórios e gráficos devem ser calculados com base nos dias letivos com registro no sistema, não sobre o total de dias corridos do calendário. | Relatórios / Dashboard | MÉDIA |
-| RN-023 | A exportação CSV do relatório de frequência deve conter, para cada aluno: nome, matrícula, turma, componente curricular (quando aplicável), colunas de status por dia letivo do mês (formato DD/MM), total de presenças, total de atrasos, total de faltas, total de justificadas, total de dias letivos e percentual de frequência. O arquivo é gerado com BOM UTF-8 para compatibilidade com planilhas. | Relatórios | MÉDIA |
+| RN-023 | A exportação CSV do relatório de frequência deve conter, para cada aluno: nome, matrícula, turma, componente curricular (quando aplicável), colunas de status por dia letivo do mês (formato DD/MM), total de presenças, total de atrasos, total de faltas, total de justificadas, total de dias letivos e percentual de frequência. O arquivo é gerado com BOM UTF-8 para compatibilidade com planilhas. | Relatórios [Escopo futuro] | MÉDIA |
 
 ### 4.5 Proteção de Dados e Conformidade Legal
 
