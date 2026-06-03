@@ -12,7 +12,7 @@ Itacoatiara — Amazonas — Brasil | Junho de 2026
 
 O presente documento formaliza os Requisitos Funcionais (RF), os Requisitos Não Funcionais (RNF) e as Regras de Negócio (RN) do Sistema de Reconhecimento Facial para Alunos da Rede Pública de Ensino (SRGFA). A especificação foi elaborada com base na análise dos artefatos técnicos do projeto — arquivos de configuração Docker, código-fonte dos três serviços, histórico de branches e fluxos operacionais implementados — seguindo as boas práticas de Engenharia de Software descritas na norma IEEE 830 (Software Requirements Specification).
 
-O SRGFA é composto por três serviços interdependentes: (i) a API de Reconhecimento Facial, em Python/FastAPI/InsightFace buffalo_l; (ii) o Backend de Negócios, em Node.js/Express/TypeScript/Firebase Firestore; e (iii) o Frontend de Apresentação, em React/TypeScript/Vite.
+O SRGFA é composto por três serviços interdependentes: (i) a API de Reconhecimento Facial, em Python/FastAPI/InsightFace buffalo_s; (ii) o Backend de Negócios, em Node.js/Express/TypeScript/Firebase Firestore; e (iii) o Frontend de Apresentação, em React/TypeScript/Vite.
 
 ```
 Convenção de identificadores adotada neste documento

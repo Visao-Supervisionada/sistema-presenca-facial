@@ -53,7 +53,7 @@
   <rect x="474" y="84" width="168" height="12" fill="#f59e0b"/>
   <text x="558" y="82" font-family="system-ui,sans-serif" font-size="13" font-weight="700" text-anchor="middle" fill="white">API Facial</text>
   <text x="558" y="112" font-family="system-ui,sans-serif" font-size="10.5" text-anchor="middle" fill="#78350f">FastAPI · Python</text>
-  <text x="558" y="128" font-family="system-ui,sans-serif" font-size="10.5" text-anchor="middle" fill="#78350f">InsightFace buffalo_l</text>
+  <text x="558" y="128" font-family="system-ui,sans-serif" font-size="10.5" text-anchor="middle" fill="#78350f">InsightFace buffalo_s</text>
   <text x="558" y="146" font-family="system-ui,sans-serif" font-size="9.5" text-anchor="middle" fill="#64748b">Porta 8000</text>
 
   <!-- ======= FIREBASE BOX ======= -->

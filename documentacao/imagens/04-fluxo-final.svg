@@ -42,11 +42,11 @@
 
   <path d="M 430 214 L 430 228" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
 
-  <!-- Step 4: buffalo_l -->
+  <!-- Step 4: buffalo_s -->
   <rect x="280" y="228" width="300" height="44" rx="10" fill="white" stroke="#b45309" stroke-width="2" filter="url(#sh)"/>
   <rect x="280" y="228" width="300" height="44" rx="10" fill="#b45309" opacity="0.08"/>
   <rect x="280" y="228" width="6" height="44" rx="3" fill="#b45309"/>
-  <text x="430" y="247" font-family="system-ui,sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#92400e">🧠  InsightFace buffalo_l</text>
+  <text x="430" y="247" font-family="system-ui,sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#92400e">🧠  InsightFace buffalo_s</text>
   <text x="430" y="263" font-family="system-ui,sans-serif" font-size="10" text-anchor="middle" fill="#64748b">Detecta rostos · Extrai embedding 512-dim</text>
 
   <path d="M 430 272 L 430 286" stroke="#94a3b8" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
