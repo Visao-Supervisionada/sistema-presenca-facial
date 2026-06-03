@@ -39,6 +39,7 @@ function obterHoraAtual() {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
+    timeZone: 'America/Manaus',
   });
 }
 
@@ -351,7 +352,7 @@ export async function listarDiarioMensal(params: {
   const dataInicio = `${ano}-${String(mes).padStart(2, '0')}-01`;
   const ultimoDia = new Date(ano, mes, 0).getDate();
   const dataFim = `${ano}-${String(mes).padStart(2, '0')}-${String(ultimoDia).padStart(2, '0')}`;
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = new Intl.DateTimeFormat('sv', { timeZone: 'America/Manaus' }).format(new Date());
 
   const alunos = await listarAlunosPorTurma(turmaId);
 

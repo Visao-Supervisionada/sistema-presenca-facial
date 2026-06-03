@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import { fecharDiaPorTurno } from './services/diario.service';
 
 function obterDataHoje(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat('sv', { timeZone: 'America/Manaus' }).format(new Date());
 }
 
 export function iniciarCrons(): void {
