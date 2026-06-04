@@ -214,15 +214,22 @@ export async function confirmarEntrada(params: {
     ? (documentoAtual.data() as RegistroDiario)
     : null;
 
-  const horaEntradaReal = obterHoraAtual();
+  const entradaJaRegistrada = Boolean(registroAtual?.horaEntradaReal);
 
-  const statusEntrada = horario
-    ? calcularStatusEntrada(
-        horaEntradaReal.slice(0, 5),
-        horario.horaLimiteEntrada,
-        horario.horaEntrada,
-      )
-    : "presente";
+  const horaEntradaReal: string | null = entradaJaRegistrada
+    ? (registroAtual?.horaEntradaReal ?? null)
+    : obterHoraAtual();
+
+  const statusEntrada: StatusEntrada =
+    entradaJaRegistrada && registroAtual?.statusEntrada
+      ? registroAtual.statusEntrada
+      : horario
+        ? calcularStatusEntrada(
+            String(horaEntradaReal ?? obterHoraAtual()).slice(0, 5),
+            horario.horaLimiteEntrada,
+            horario.horaEntrada,
+          )
+        : "presente";
 
   const registro: RegistroDiario = removerCamposIndefinidos({
     id,
@@ -246,10 +253,14 @@ export async function confirmarEntrada(params: {
     statusEntrada,
     statusSaida: registroAtual?.statusSaida || "pendente",
 
-    origemEntrada: params.origem,
+    origemEntrada: registroAtual?.origemEntrada || params.origem,
     origemSaida: registroAtual?.origemSaida,
 
-    confidenceEntrada: params.confidence,
+    confidenceEntrada:
+      registroAtual?.confidenceEntrada !== undefined
+        ? registroAtual.confidenceEntrada
+        : params.confidence,
+
     confidenceSaida: registroAtual?.confidenceSaida,
 
     criadoEm: registroAtual?.criadoEm || timestampServidor(),
@@ -448,7 +459,9 @@ export async function listarDiarioMensal(params: {
 
   const alunos = await listarAlunosPorTurma(turmaId);
 
-  const snapshotDiario = await colecaoDiario.where("turma", "==", turmaId).get();
+  const snapshotDiario = await colecaoDiario
+    .where("turma", "==", turmaId)
+    .get();
 
   const registrosPorAluno: Record<string, Record<string, RegistroDiario>> = {};
 
