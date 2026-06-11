@@ -16,7 +16,9 @@ function obterDataHoje(): string {
 
 async function fecharTurnoComSeguranca(turno: Turno): Promise<void> {
   if (execucoesEmAndamento[turno]) {
-    console.log(`[CRON] ${turno} já está em execução. Ignorando chamada duplicada.`);
+    console.log(
+      `[CRON] ${turno} já está em execução. Ignorando chamada duplicada.`,
+    );
     return;
   }
 
@@ -41,13 +43,14 @@ async function fecharTurnoComSeguranca(turno: Turno): Promise<void> {
 }
 
 export function iniciarCrons(): void {
-  const cronAtivo = process.env.ENABLE_CRON !== "false";
+  const cronAtivo = process.env.ENABLE_CRON === "true";
 
   if (!cronAtivo) {
-    console.log("[CRON] Desativado por ENABLE_CRON=false.");
+    console.log(
+      "fechamento automático desativado, use os botões de fechamento manual",
+    );
     return;
   }
-
   cron.schedule(
     "15 11 * * 1-5",
     () => {

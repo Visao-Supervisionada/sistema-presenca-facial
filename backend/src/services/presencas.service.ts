@@ -276,12 +276,6 @@ export async function registrarPresencaPorMatricula(params: {
   }
 
   const presencaAtual = documentoPresenca.data() as Presenca;
-
-  /**
-   * Se já existe registro antigo, mas agora está fora da janela do horário atual,
-   * não sincroniza diário e não retorna "ja_finalizada".
-   * Isso evita aparecer como presença finalizada antes da nova hora de entrada.
-   */
   if (foraDeTodasAsJanelas) {
     return {
       acao: "fora_da_janela",
@@ -382,39 +376,128 @@ export async function resetarPresencaPorMatriculaEData(params: {
 
   const aluno = await buscarAlunoPorMatricula(matricula);
 
-  const snapshotPresencas = await colecaoPresencas
+  const lote = db.batch();
+  let operacoes = 0;
+
+  /**
+   * Remove registros da coleção "presencas".
+   * Aqui apagamos por matrícula/data e também por alunoId/data,
+   * porque alguns registros podem ter sido salvos usando o ID do aluno.
+   */
+  const snapshotPresencasPorMatricula = await colecaoPresencas
     .where("matricula", "==", matricula)
     .where("data", "==", data)
     .get();
 
+  const snapshotPresencasPorAlunoId = aluno
+    ? await colecaoPresencas
+        .where("alunoId", "==", aluno.id)
+        .where("data", "==", data)
+        .get()
+    : null;
+
+  const idsPresencasRemovidas = new Set<string>();
+
+  for (const documento of snapshotPresencasPorMatricula.docs) {
+    if (!idsPresencasRemovidas.has(documento.id)) {
+      lote.delete(documento.ref);
+      idsPresencasRemovidas.add(documento.id);
+      operacoes++;
+    }
+  }
+
+  if (snapshotPresencasPorAlunoId) {
+    for (const documento of snapshotPresencasPorAlunoId.docs) {
+      if (!idsPresencasRemovidas.has(documento.id)) {
+        lote.delete(documento.ref);
+        idsPresencasRemovidas.add(documento.id);
+        operacoes++;
+      }
+    }
+  }
+
+  /**
+   * Remove registros da coleção "diario".
+   * A tela de frequência normalmente lê essa coleção.
+   * Por isso apagamos por:
+   * - ID fixo: matricula_data
+   * - matrícula + data
+   * - alunoId + data
+   */
   const idDiario = `${matricula}_${data}`;
   const referenciaDiario = colecaoDiario.doc(idDiario);
-  const documentoDiario = await referenciaDiario.get();
+  const documentoDiarioPorId = await referenciaDiario.get();
 
-  const snapshotJustificativas = aluno
+  const snapshotDiarioPorMatricula = await colecaoDiario
+    .where("matricula", "==", matricula)
+    .where("data", "==", data)
+    .get();
+
+  const snapshotDiarioPorAlunoId = aluno
+    ? await colecaoDiario
+        .where("alunoId", "==", aluno.id)
+        .where("data", "==", data)
+        .get()
+    : null;
+
+  const idsDiarioRemovidos = new Set<string>();
+
+  if (documentoDiarioPorId.exists) {
+    lote.delete(referenciaDiario);
+    idsDiarioRemovidos.add(referenciaDiario.id);
+    operacoes++;
+  }
+
+  for (const documento of snapshotDiarioPorMatricula.docs) {
+    if (!idsDiarioRemovidos.has(documento.id)) {
+      lote.delete(documento.ref);
+      idsDiarioRemovidos.add(documento.id);
+      operacoes++;
+    }
+  }
+
+  if (snapshotDiarioPorAlunoId) {
+    for (const documento of snapshotDiarioPorAlunoId.docs) {
+      if (!idsDiarioRemovidos.has(documento.id)) {
+        lote.delete(documento.ref);
+        idsDiarioRemovidos.add(documento.id);
+        operacoes++;
+      }
+    }
+  }
+
+  /**
+   Remove justificativas vinculadas a mesma matrícula/data.
+   */
+  const snapshotJustificativasPorMatricula = await colecaoJustificativas
+    .where("matricula", "==", matricula)
+    .where("data", "==", data)
+    .get();
+
+  const snapshotJustificativasPorAlunoId = aluno
     ? await colecaoJustificativas
         .where("alunoId", "==", aluno.id)
         .where("data", "==", data)
         .get()
     : null;
 
-  const lote = db.batch();
-  let operacoes = 0;
+  const idsJustificativasRemovidas = new Set<string>();
 
-  for (const documento of snapshotPresencas.docs) {
-    lote.delete(documento.ref);
-    operacoes++;
-  }
-
-  if (documentoDiario.exists) {
-    lote.delete(referenciaDiario);
-    operacoes++;
-  }
-
-  if (snapshotJustificativas) {
-    for (const documento of snapshotJustificativas.docs) {
+  for (const documento of snapshotJustificativasPorMatricula.docs) {
+    if (!idsJustificativasRemovidas.has(documento.id)) {
       lote.delete(documento.ref);
+      idsJustificativasRemovidas.add(documento.id);
       operacoes++;
+    }
+  }
+
+  if (snapshotJustificativasPorAlunoId) {
+    for (const documento of snapshotJustificativasPorAlunoId.docs) {
+      if (!idsJustificativasRemovidas.has(documento.id)) {
+        lote.delete(documento.ref);
+        idsJustificativasRemovidas.add(documento.id);
+        operacoes++;
+      }
     }
   }
 
@@ -423,8 +506,8 @@ export async function resetarPresencaPorMatriculaEData(params: {
   }
 
   return {
-    presencasRemovidas: snapshotPresencas.size,
-    diarioRemovido: documentoDiario.exists,
-    justificativasRemovidas: snapshotJustificativas?.size ?? 0,
+    presencasRemovidas: idsPresencasRemovidas.size,
+    diarioRemovido: idsDiarioRemovidos.size > 0,
+    justificativasRemovidas: idsJustificativasRemovidas.size,
   };
 }

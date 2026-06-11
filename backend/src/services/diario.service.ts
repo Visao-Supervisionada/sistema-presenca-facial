@@ -33,18 +33,6 @@ function normalizarMinutos(minutos: number): number {
   return ((minutos % MINUTOS_DIA) + MINUTOS_DIA) % MINUTOS_DIA;
 }
 
-function obterDataAtual(): string {
-  return new Intl.DateTimeFormat("sv", {
-    timeZone: FUSO_HORARIO,
-  }).format(new Date());
-}
-
-function formatarDataManaus(data: Date): string {
-  return new Intl.DateTimeFormat("sv", {
-    timeZone: FUSO_HORARIO,
-  }).format(data);
-}
-
 function obterDiaSemana(data: string): DiaSemana {
   const [ano, mes, dia] = data.split("-").map(Number);
   const indiceDia = new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay();
@@ -455,7 +443,6 @@ export async function listarDiarioMensal(params: {
   const dataFim = `${ano}-${String(mes).padStart(2, "0")}-${String(
     ultimoDia,
   ).padStart(2, "0")}`;
-  const hoje = obterDataAtual();
 
   const alunos = await listarAlunosPorTurma(turmaId);
 
@@ -507,12 +494,6 @@ export async function listarDiarioMensal(params: {
     const justAluno = justificativasPorAluno[aluno.id] || {};
     const dias: Record<string, PresencaDoDia> = {};
 
-    const criadoEm = aluno.criadoEm as FirebaseFirestore.Timestamp | undefined;
-
-    const dataCadastro = criadoEm?.toDate
-      ? formatarDataManaus(criadoEm.toDate())
-      : "1900-01-01";
-
     for (let dia = 1; dia <= ultimoDia; dia++) {
       const dataStr = `${ano}-${String(mes).padStart(2, "0")}-${String(
         dia,
@@ -533,10 +514,6 @@ export async function listarDiarioMensal(params: {
         status = "justificado";
       } else if (reg) {
         status = converterStatusMensal(String(reg.statusEntrada));
-      } else if (dataStr < dataCadastro) {
-        status = "pendente";
-      } else if (dataStr < hoje) {
-        status = "falta";
       } else {
         status = "pendente";
       }
