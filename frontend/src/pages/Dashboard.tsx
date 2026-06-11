@@ -1,5 +1,13 @@
-import { useEffect, useState } from 'react';
-import { AlertTriangle, Clock, Loader2, RefreshCw, UserCheck, Users, UserX } from 'lucide-react';
+import { useEffect, useState } from "react";
+import {
+  AlertTriangle,
+  Clock,
+  Loader2,
+  RefreshCw,
+  UserCheck,
+  Users,
+  UserX,
+} from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -11,39 +19,42 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts';
+} from "recharts";
 
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   buscarDadosSemana,
   buscarResumoDia,
   type DadosSemana,
   type PresencaDia,
   type ResumoDia,
-} from '@/services/dashboardService';
+} from "@/services/dashboardService";
 
-const CORES_PIZZA = ['#16a34a', '#dc2626', '#ca8a04'];
+const CORES_PIZZA = ["#16a34a", "#dc2626", "#ca8a04"];
 const INTERVALO_REFRESH = 30_000;
 
 function hojeFormatado(): string {
   const d = new Date();
   const ano = d.getFullYear();
-  const mes = String(d.getMonth() + 1).padStart(2, '0');
-  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
   return `${ano}-${mes}-${dia}`;
 }
 
 function horaAtual(): string {
-  return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return new Date().toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function dataExibicao(): string {
-  return new Date().toLocaleDateString('pt-BR', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
+  return new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
   });
 }
 
@@ -80,15 +91,17 @@ export default function Dashboard() {
 
   const dadosPizza = resumo
     ? [
-        { name: 'Presentes', value: resumo.presentes },
-        { name: 'Ausentes', value: resumo.ausentes },
-        { name: 'Atrasos', value: resumo.atrasos },
+        { name: "Presentes", value: resumo.presentes },
+        { name: "Ausentes", value: resumo.ausentes },
+        { name: "Atrasos", value: resumo.atrasos },
       ]
     : [];
 
   const recentes: PresencaDia[] = resumo
     ? [...resumo.presencas]
-        .sort((a, b) => (b.horaEntrada ?? '').localeCompare(a.horaEntrada ?? ''))
+        .sort((a, b) =>
+          (b.horaEntrada ?? "").localeCompare(a.horaEntrada ?? ""),
+        )
         .slice(0, 10)
     : [];
 
@@ -97,7 +110,9 @@ export default function Dashboard() {
       {/* Cabeçalho */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            Dashboard
+          </h1>
           <p className="capitalize text-gray-500">{dataExibicao()}</p>
         </div>
         <div className="flex items-center gap-3">
@@ -109,7 +124,9 @@ export default function Dashboard() {
             disabled={carregando}
             className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${carregando ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${carregando ? "animate-spin" : ""}`}
+            />
             Atualizar
           </button>
         </div>
@@ -126,22 +143,30 @@ export default function Dashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Total de Alunos</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-500">
+                  Total de Alunos
+                </CardTitle>
                 <Users className="h-4 w-4 text-green-700" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{resumo?.total ?? 0}</div>
-                <p className="mt-1 text-xs text-gray-500">Cadastrados no sistema</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Cadastrados no sistema
+                </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Presentes</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-500">
+                  Presentes
+                </CardTitle>
                 <UserCheck className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{resumo?.presentes ?? 0}</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {resumo?.presentes ?? 0}
+                </div>
                 <p className="mt-1 text-xs text-gray-500">
                   {resumo?.percentualPresenca ?? 0}% de frequência hoje
                 </p>
@@ -150,23 +175,33 @@ export default function Dashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Ausentes</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-500">
+                  Ausentes
+                </CardTitle>
                 <UserX className="h-4 w-4 text-red-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{resumo?.ausentes ?? 0}</div>
+                <div className="text-2xl font-bold text-red-600">
+                  {resumo?.ausentes ?? 0}
+                </div>
                 <p className="mt-1 text-xs text-gray-500">Sem registro hoje</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-500">Atrasos</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-500">
+                  Atrasos
+                </CardTitle>
                 <Clock className="h-4 w-4 text-yellow-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{resumo?.atrasos ?? 0}</div>
-                <p className="mt-1 text-xs text-gray-500">Entrada fora do horário</p>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {resumo?.atrasos ?? 0}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Entrada fora do horário
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -176,7 +211,9 @@ export default function Dashboard() {
             {/* Barras — frequência da semana */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Frequência da Semana</CardTitle>
+                <CardTitle className="text-base">
+                  Frequência da Semana
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 {semana.length === 0 ? (
@@ -189,9 +226,19 @@ export default function Dashboard() {
                       <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                       <Tooltip
-                        formatter={(value: number) => [`${value} presente(s)`, 'Presentes']}
+                        formatter={(value) => {
+                          const numero = Number(value ?? 0);
+                          return [`${numero} presente(s)`, "Presentes"] as [
+                            string,
+                            string,
+                          ];
+                        }}
                       />
-                      <Bar dataKey="presentes" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                      <Bar
+                        dataKey="presentes"
+                        fill="#16a34a"
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -219,17 +266,26 @@ export default function Dashboard() {
                         outerRadius={85}
                         paddingAngle={3}
                         dataKey="value"
-                        label={({ name, value }) => (value > 0 ? `${name}: ${value}` : '')}
+                        label={({ name, value }) =>
+                          value > 0 ? `${name}: ${value}` : ""
+                        }
                         labelLine={false}
                       >
                         {dadosPizza.map((_, index) => (
                           <Cell key={index} fill={CORES_PIZZA[index]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value: number) => [value, '']} />
+                      <Tooltip
+                        formatter={(value) => {
+                          const numero = Number(value ?? 0);
+                          return [numero, ""] as [number, string];
+                        }}
+                      />
                       <Legend
                         formatter={(value) => (
-                          <span style={{ fontSize: 12, color: '#374151' }}>{value}</span>
+                          <span style={{ fontSize: 12, color: "#374151" }}>
+                            {value}
+                          </span>
                         )}
                       />
                     </PieChart>
@@ -264,23 +320,40 @@ export default function Dashboard() {
                     </thead>
                     <tbody>
                       {recentes.map((p) => (
-                        <tr key={p.id} className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-900">{p.nome}</td>
-                          <td className="px-4 py-3 text-gray-500">{p.turma || '—'}</td>
-                          <td className="px-4 py-3 text-gray-500">{p.horaEntrada ?? '—'}</td>
-                          <td className="px-4 py-3 text-gray-500">{p.horaSaida ?? '—'}</td>
+                        <tr
+                          key={p.id}
+                          className="border-b last:border-0 hover:bg-gray-50"
+                        >
+                          <td className="px-4 py-3 font-medium text-gray-900">
+                            {p.nome}
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">
+                            {p.turma || "—"}
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">
+                            {p.horaEntrada ?? "—"}
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">
+                            {p.horaSaida ?? "—"}
+                          </td>
                           <td className="px-4 py-3 text-gray-500">
                             {p.confidence != null
                               ? `${(p.confidence * 100).toFixed(1)}%`
-                              : '—'}
+                              : "—"}
                           </td>
                           <td className="px-4 py-3">
-                            {p.status === 'atrasado' ? (
-                              <Badge className="bg-yellow-100 text-yellow-800">Atrasado</Badge>
+                            {p.status === "atrasado" ? (
+                              <Badge className="bg-yellow-100 text-yellow-800">
+                                Atrasado
+                              </Badge>
                             ) : p.horaSaida ? (
-                              <Badge className="bg-blue-100 text-blue-800">Saída registrada</Badge>
+                              <Badge className="bg-blue-100 text-blue-800">
+                                Saída registrada
+                              </Badge>
                             ) : p.horaEntrada ? (
-                              <Badge className="bg-green-100 text-green-800">Presente</Badge>
+                              <Badge className="bg-green-100 text-green-800">
+                                Presente
+                              </Badge>
                             ) : (
                               <Badge className="bg-red-100 text-red-800">
                                 <AlertTriangle className="mr-1 h-3 w-3" />
