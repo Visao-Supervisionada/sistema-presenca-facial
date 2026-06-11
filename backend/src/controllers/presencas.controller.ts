@@ -1,67 +1,101 @@
-import { RequestHandler } from 'express';
+import { RequestHandler } from "express";
 
-import { reconhecerMultiplosRostos } from '../services/reconhecimento.service';
+import { reconhecerMultiplosRostos } from "../services/reconhecimento.service";
 import {
   listarPresencas,
   registrarPresencaPorMatricula,
-} from '../services/presencas.service';
+  resetarPresencaPorMatriculaEData,
+} from "../services/presencas.service";
 
-export const registrarPresencaPorReconhecimentoController: RequestHandler = async (
-  req,
-  res,
-) => {
-  try {
-    if (!req.file) {
-      res.status(400).json({
-        success: false,
-        message: 'Imagem é obrigatória.',
-      });
-      return;
-    }
+type AcaoPresenca =
+  | "entrada"
+  | "saida"
+  | "ja_finalizada"
+  | "aluno_nao_encontrado"
+  | "desconhecido"
+  | "em_aula"
+  | "sem_horario"
+  | "fora_da_janela";
 
-    const resultadoReconhecimento = await reconhecerMultiplosRostos({
-      arquivo: req.file,
-      threshold: 0.6,
-      minCosineThreshold: 0,
-    });
+interface RegistroPresencaReconhecimento {
+  reconhecimento: unknown;
+  acao: AcaoPresenca;
+  presenca?: unknown;
+}
 
-    const registros = [];
+function obterNumeroFormulario(
+  valor: unknown,
+  padrao: number,
+): number {
+  const numero = Number(valor);
 
-    for (const resultado of resultadoReconhecimento.results) {
-      if (!resultado.matched || !resultado.registration) {
-        registros.push({
-          reconhecimento: resultado,
-          acao: 'desconhecido',
+  return Number.isFinite(numero) ? numero : padrao;
+}
+
+export const registrarPresencaPorReconhecimentoController: RequestHandler =
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: "Imagem é obrigatória.",
         });
-
-        continue;
+        return;
       }
 
-      const presenca = await registrarPresencaPorMatricula({
-        matricula: resultado.registration,
-        confidence: resultado.confidence,
+      const threshold = obterNumeroFormulario(req.body.threshold, 0.6);
+
+      const minCosineThreshold = obterNumeroFormulario(
+        req.body.minCosineThreshold ?? req.body.min_cosine_threshold,
+        0.35,
+      );
+
+      const resultadoReconhecimento = await reconhecerMultiplosRostos({
+        arquivo: req.file,
+        threshold,
+        minCosineThreshold,
       });
 
-      registros.push({
-        reconhecimento: resultado,
-        ...presenca,
+      const registros: RegistroPresencaReconhecimento[] = [];
+
+      for (const resultado of resultadoReconhecimento.results || []) {
+        const matricula = String(resultado.registration || "").trim();
+
+        if (!resultado.matched || !matricula) {
+          registros.push({
+            reconhecimento: resultado,
+            acao: "desconhecido",
+          });
+
+          continue;
+        }
+
+        const resultadoPresenca = await registrarPresencaPorMatricula({
+          matricula,
+          confidence: resultado.confidence,
+        });
+
+        registros.push({
+          reconhecimento: resultado,
+          acao: resultadoPresenca.acao,
+          presenca: resultadoPresenca.presenca,
+        });
+      }
+
+      res.json({
+        success: true,
+        total_faces: resultadoReconhecimento.total_faces ?? registros.length,
+        classifier_loaded: resultadoReconhecimento.classifier_loaded ?? true,
+        registros,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Erro ao registrar presença por reconhecimento.",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
-
-    res.json({
-      success: true,
-      total_faces: resultadoReconhecimento.total_faces,
-      classifier_loaded: resultadoReconhecimento.classifier_loaded,
-      registros,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao registrar presença por reconhecimento.',
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-};
+  };
 
 export const listarPresencasController: RequestHandler = async (_req, res) => {
   try {
@@ -75,7 +109,44 @@ export const listarPresencasController: RequestHandler = async (_req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Erro ao listar presenças.',
+      message: "Erro ao listar presenças.",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+export const resetarPresencaController: RequestHandler = async (req, res) => {
+  try {
+    const matricula = String(
+      req.body.matricula ?? req.query.matricula ?? "",
+    ).trim();
+
+    const data = String(req.body.data ?? req.query.data ?? "").trim();
+
+    if (!matricula || !data) {
+      res.status(400).json({
+        success: false,
+        message: "Matrícula e data são obrigatórias.",
+      });
+      return;
+    }
+
+    const resultado = await resetarPresencaPorMatriculaEData({
+      matricula,
+      data,
+    });
+
+    res.json({
+      success: true,
+      message: "Frequência resetada com sucesso.",
+      matricula,
+      data,
+      ...resultado,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Erro ao resetar frequência.",
       error: error instanceof Error ? error.message : String(error),
     });
   }

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.6
-FROM python:3.10-slim
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
 WORKDIR /app
 
@@ -9,51 +9,56 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 ENV PIP_DEFAULT_TIMEOUT=1000
 ENV PIP_RETRIES=20
 ENV PIP_RESUME_RETRIES=20
+ENV CC=/usr/bin/gcc-13
+ENV CXX=/usr/bin/g++-13
+ENV INSIGHTFACE_HOME=/root/.insightface
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    ca-certificates \
+    gnupg \
+    && add-apt-repository -y ppa:ubuntu-toolchain-r/test \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-dev \
     build-essential \
-    g++ \
+    gcc-13 \
+    g++-13 \
+    libstdc++6 \
     libglib2.0-0 \
     libgomp1 \
+    libgl1 \
     curl \
     unzip \
     && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./requirements.txt
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python3 -m pip install --upgrade pip setuptools wheel
+
+# instala primeiro porque o insightface precisa disso no build
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python3 -m pip install \
+    numpy==1.26.4 \
+    cython==3.0.11
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python3 -m pip install --no-build-isolation -r requirements.txt
 
 COPY app ./app
 COPY modelos ./modelos
 
 RUN mkdir -p /app/data
-RUN mkdir -p /root/.insightface/models/buffalo_l
-
-RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m pip install --upgrade setuptools wheel
-
-RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m pip install \
-    fastapi==0.115.0 \
-    "uvicorn[standard]==0.30.6" \
-    python-multipart==0.0.9 \
-    numpy==1.26.4 \
-    pillow==10.4.0 \
-    opencv-python-headless==4.10.0.84 \
-    onnxruntime==1.19.2 \
-    scipy==1.14.1 \
-    scikit-learn==1.5.2 \
-    easydict==1.13 \
-    requests==2.32.3 \
-    onnx==1.16.2 \
-    joblib==1.4.2 \
-    cython==3.0.11
-
-RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m pip install --no-build-isolation insightface==0.7.3
+RUN mkdir -p /root/.insightface/models
 
 RUN curl -L \
-    https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip \
-    -o /tmp/buffalo_l.zip \
-    && unzip /tmp/buffalo_l.zip -d /root/.insightface/models/buffalo_l \
-    && rm /tmp/buffalo_l.zip
+    https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_s.zip \
+    -o /tmp/buffalo_s.zip \
+    && unzip /tmp/buffalo_s.zip -d /root/.insightface/models \
+    && rm /tmp/buffalo_s.zip
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python3", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

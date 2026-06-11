@@ -1,5 +1,12 @@
-import { useEffect, useState } from "react";
-import { CalendarClock, Loader2, Plus, Trash2, UserCheck } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import {
+  CalendarClock,
+  Loader2,
+  Plus,
+  Trash2,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -41,67 +48,150 @@ const DIAS_LABEL: Record<DiaSemana, string> = {
 };
 
 const HORARIOS_TURNO = {
-  matutino: { horaEntrada: "07:00", horaLimiteEntrada: "07:15", horaSaida: "11:15" },
-  vespertino: { horaEntrada: "13:00", horaLimiteEntrada: "13:15", horaSaida: "17:15" },
-  noturno: { horaEntrada: "19:00", horaLimiteEntrada: "19:15", horaSaida: "22:15" },
+  matutino: {
+    horaEntrada: "07:00",
+    horaLimiteEntrada: "07:15",
+    horaSaida: "11:15",
+  },
+  vespertino: {
+    horaEntrada: "13:00",
+    horaLimiteEntrada: "13:15",
+    horaSaida: "17:15",
+  },
+  noturno: {
+    horaEntrada: "19:00",
+    horaLimiteEntrada: "19:15",
+    horaSaida: "22:15",
+  },
 };
 
 const SELECT_CLASS =
   "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400";
 
+type Turno = "matutino" | "vespertino" | "noturno";
+type ModoAplicacao = "alunos" | "turma" | "todos";
+
 export default function Horario() {
   const [carregando, setCarregando] = useState(false);
   const [salvando, setSalvando] = useState(false);
+
   const [horarios, setHorarios] = useState<HorarioTipo[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
-  const [alunoSelecionado, setAlunoSelecionado] = useState<Aluno | null>(null);
-  const [turno, setTurno] = useState<"matutino" | "vespertino" | "noturno">("matutino");
-  const [diasSelecionados, setDiasSelecionados] = useState<DiaSemana[]>(["segunda", "terca", "quarta", "quinta", "sexta"]);
+
+  const [modoAplicacao, setModoAplicacao] =
+    useState<ModoAplicacao>("alunos");
+
+  const [matriculasSelecionadas, setMatriculasSelecionadas] = useState<
+    string[]
+  >([]);
+
+  const [turmaSelecionada, setTurmaSelecionada] = useState("");
+
+  const [turno, setTurno] = useState<Turno>("matutino");
+
+  const [diasSelecionados, setDiasSelecionados] = useState<DiaSemana[]>([
+    "segunda",
+    "terca",
+    "quarta",
+    "quinta",
+    "sexta",
+  ]);
+
   const [horarioForm, setHorarioForm] = useState(HORARIOS_TURNO.matutino);
 
-  useEffect(() => { carregarDados(); }, []);
+  useEffect(() => {
+    carregarDados();
+  }, []);
 
   async function carregarDados() {
     try {
       setCarregando(true);
-      const [resHorarios, resAlunos] = await Promise.all([listarHorarios(), listarAlunos()]);
+
+      const [resHorarios, resAlunos] = await Promise.all([
+        listarHorarios(),
+        listarAlunos(),
+      ]);
+
       setHorarios(resHorarios.horarios);
       setAlunos(resAlunos.alunos);
     } catch (error) {
       toast.error("Erro ao carregar dados.", {
-        description: error instanceof Error ? error.message : "Erro inesperado.",
+        description:
+          error instanceof Error ? error.message : "Erro inesperado.",
       });
     } finally {
       setCarregando(false);
     }
   }
 
-  function selecionarAluno(matricula: string) {
-    setAlunoSelecionado(alunos.find((a) => a.matricula === matricula) ?? null);
+  function obterTurmas() {
+    return Array.from(
+      new Set(alunos.map((aluno) => aluno.turma).filter(Boolean)),
+    ).sort((a, b) => a.localeCompare(b));
   }
 
-  function selecionarTurno(novoTurno: "matutino" | "vespertino" | "noturno") {
+  function obterAlunosDestino() {
+    if (modoAplicacao === "todos") {
+      return alunos;
+    }
+
+    if (modoAplicacao === "turma") {
+      return alunos.filter((aluno) => aluno.turma === turmaSelecionada);
+    }
+
+    return alunos.filter((aluno) =>
+      matriculasSelecionadas.includes(aluno.matricula),
+    );
+  }
+
+  function alterarModoAplicacao(novoModo: ModoAplicacao) {
+    setModoAplicacao(novoModo);
+    setMatriculasSelecionadas([]);
+    setTurmaSelecionada("");
+  }
+
+  function toggleAluno(matricula: string) {
+    setMatriculasSelecionadas((matriculasAtuais) =>
+      matriculasAtuais.includes(matricula)
+        ? matriculasAtuais.filter((item) => item !== matricula)
+        : [...matriculasAtuais, matricula],
+    );
+  }
+
+  function selecionarTodosAlunos() {
+    setMatriculasSelecionadas(alunos.map((aluno) => aluno.matricula));
+  }
+
+  function limparAlunosSelecionados() {
+    setMatriculasSelecionadas([]);
+  }
+
+  function selecionarTurno(novoTurno: Turno) {
     setTurno(novoTurno);
     setHorarioForm(HORARIOS_TURNO[novoTurno]);
   }
 
   function toggleDia(dia: DiaSemana) {
-    setDiasSelecionados((prev) =>
-      prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia],
+    setDiasSelecionados((diasAtuais) =>
+      diasAtuais.includes(dia)
+        ? diasAtuais.filter((item) => item !== dia)
+        : [...diasAtuais, dia],
     );
   }
 
-  function turnoDoHorario(horaEntrada: string): "matutino" | "vespertino" | "noturno" {
+  function turnoDoHorario(horaEntrada: string): Turno {
     if (horaEntrada < "12:00") return "matutino";
     if (horaEntrada >= "18:00") return "noturno";
     return "vespertino";
   }
 
-  async function salvarHorario(evento: React.FormEvent) {
+  async function salvarHorario(evento: FormEvent) {
     evento.preventDefault();
 
-    if (!alunoSelecionado) {
-      toast.error("Selecione um aluno.");
+    const alunosDestino = obterAlunosDestino();
+
+    if (alunosDestino.length === 0) {
+      toast.error("Selecione pelo menos um aluno.");
       return;
     }
 
@@ -114,24 +204,33 @@ export default function Horario() {
       setSalvando(true);
 
       await Promise.all(
-        diasSelecionados.map((dia) =>
-          criarHorario({
-            matricula: alunoSelecionado.matricula,
-            nome: alunoSelecionado.nome,
-            turma: alunoSelecionado.turma,
-            diaSemana: dia,
-            horaEntrada: horarioForm.horaEntrada,
-            horaLimiteEntrada: horarioForm.horaLimiteEntrada,
-            horaSaida: horarioForm.horaSaida,
-          }),
+        alunosDestino.flatMap((aluno) =>
+          diasSelecionados.map((dia) =>
+            criarHorario({
+              matricula: aluno.matricula,
+              nome: aluno.nome,
+              turma: aluno.turma,
+              diaSemana: dia,
+              horaEntrada: horarioForm.horaEntrada,
+              horaLimiteEntrada: horarioForm.horaLimiteEntrada,
+              horaSaida: horarioForm.horaSaida,
+            }),
+          ),
         ),
       );
 
-      toast.success(
-        `${diasSelecionados.length} horário(s) cadastrado(s) para ${alunoSelecionado.nome}.`,
-      );
+      const totalHorarios = alunosDestino.length * diasSelecionados.length;
 
-      setAlunoSelecionado(null);
+      toast.success(`${totalHorarios} horário(s) cadastrado(s).`, {
+        description:
+          alunosDestino.length === 1
+            ? `Aluno: ${alunosDestino[0].nome}`
+            : `${alunosDestino.length} aluno(s) incluído(s).`,
+      });
+
+      setModoAplicacao("alunos");
+      setMatriculasSelecionadas([]);
+      setTurmaSelecionada("");
       setTurno("matutino");
       setHorarioForm(HORARIOS_TURNO.matutino);
       setDiasSelecionados(["segunda", "terca", "quarta", "quinta", "sexta"]);
@@ -139,7 +238,8 @@ export default function Horario() {
       await carregarDados();
     } catch (error) {
       toast.error("Erro ao cadastrar horário.", {
-        description: error instanceof Error ? error.message : "Erro inesperado.",
+        description:
+          error instanceof Error ? error.message : "Erro inesperado.",
       });
     } finally {
       setSalvando(false);
@@ -149,70 +249,214 @@ export default function Horario() {
   async function removerHorario(id: string) {
     try {
       await excluirHorario(id);
-      toast.success("Horário removido.");
+
+      toast.success("Horário removido.", {
+        description: "A frequência do dia também será limpa quando aplicável.",
+      });
+
       await carregarDados();
     } catch (error) {
       toast.error("Erro ao remover horário.", {
-        description: error instanceof Error ? error.message : "Erro inesperado.",
+        description:
+          error instanceof Error ? error.message : "Erro inesperado.",
       });
     }
   }
 
+  const turmas = obterTurmas();
+  const alunosDestino = obterAlunosDestino();
+  const totalHorarios = alunosDestino.length * diasSelecionados.length;
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Horário</h1>
-        <p className="text-gray-500">Defina os horários de entrada, limite de atraso e saída dos alunos.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+          Horário
+        </h1>
+
+        <p className="text-gray-500">
+          Defina os horários de entrada, limite de atraso e saída dos alunos.
+        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Formulário */}
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarClock className="h-5 w-5 text-green-700" />
               Novo Horário
             </CardTitle>
-            <CardDescription>Selecione o aluno, turno e dias da semana.</CardDescription>
+
+            <CardDescription>
+              Aplique uma regra para alunos específicos, turma ou todos.
+            </CardDescription>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={salvarHorario} className="space-y-4">
-
-              {/* Aluno */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Aluno</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Aplicar horário para
+                </label>
+
                 <select
                   className={SELECT_CLASS}
-                  value={alunoSelecionado?.matricula ?? ""}
-                  onChange={(e) => selecionarAluno(e.target.value)}
-                  required
+                  value={modoAplicacao}
+                  onChange={(evento) =>
+                    alterarModoAplicacao(
+                      evento.target.value as ModoAplicacao,
+                    )
+                  }
                 >
-                  <option value="">Selecione um aluno</option>
-                  {alunos.map((aluno) => (
-                    <option key={aluno.id} value={aluno.matricula}>
-                      {aluno.nome}
-                    </option>
-                  ))}
+                  <option value="alunos">Aluno(s) específico(s)</option>
+                  <option value="turma">Turma inteira</option>
+                  <option value="todos">Todos os alunos</option>
                 </select>
               </div>
 
-              {/* Info aluno */}
-              {alunoSelecionado && (
-                <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
-                  <UserCheck className="h-4 w-4 shrink-0 text-green-600" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-green-800">{alunoSelecionado.nome}</p>
-                    <p className="text-xs text-green-600">
-                      Mat: {alunoSelecionado.matricula} · Turma: {alunoSelecionado.turma}
+              {modoAplicacao === "alunos" && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Alunos
+                    </label>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={selecionarTodosAlunos}
+                        className="text-xs font-medium text-green-700 hover:underline"
+                      >
+                        Selecionar todos
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={limparAlunosSelecionados}
+                        className="text-xs font-medium text-gray-500 hover:underline"
+                      >
+                        Limpar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-44 space-y-2 overflow-y-auto rounded-lg border border-gray-200 bg-white p-2">
+                    {alunos.length === 0 ? (
+                      <p className="px-2 py-4 text-center text-sm text-gray-500">
+                        Nenhum aluno cadastrado.
+                      </p>
+                    ) : (
+                      alunos.map((aluno) => {
+                        const selecionado = matriculasSelecionadas.includes(
+                          aluno.matricula,
+                        );
+
+                        return (
+                          <label
+                            key={aluno.id}
+                            className={`flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2 transition-colors ${
+                              selecionado
+                                ? "border-green-300 bg-green-50"
+                                : "border-gray-100 bg-white hover:bg-gray-50"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selecionado}
+                              onChange={() => toggleAluno(aluno.matricula)}
+                              className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                            />
+
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-gray-900">
+                                {aluno.nome}
+                              </p>
+
+                              <p className="text-xs text-gray-500">
+                                Mat: {aluno.matricula} · Turma: {aluno.turma}
+                              </p>
+                            </div>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {modoAplicacao === "turma" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Turma
+                  </label>
+
+                  <select
+                    className={SELECT_CLASS}
+                    value={turmaSelecionada}
+                    onChange={(evento) =>
+                      setTurmaSelecionada(evento.target.value)
+                    }
+                    required
+                  >
+                    <option value="">Selecione uma turma</option>
+
+                    {turmas.map((turma) => (
+                      <option key={turma} value={turma}>
+                        {turma}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {modoAplicacao === "todos" && (
+                <div className="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-3">
+                  <Users className="h-5 w-5 shrink-0 text-blue-700" />
+
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">
+                      Todos os alunos ativos
+                    </p>
+
+                    <p className="text-xs text-blue-700">
+                      {alunos.length} aluno(s) serão incluído(s).
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* Turno */}
+              {alunosDestino.length > 0 && (
+                <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-3">
+                  <div className="mb-2 flex items-center gap-2">
+                    <UserCheck className="h-4 w-4 text-green-700" />
+
+                    <p className="text-sm font-medium text-green-900">
+                      {alunosDestino.length} aluno(s) selecionado(s)
+                    </p>
+                  </div>
+
+                  <div className="max-h-24 space-y-1 overflow-y-auto">
+                    {alunosDestino.slice(0, 8).map((aluno) => (
+                      <p key={aluno.id} className="text-xs text-green-700">
+                        {aluno.nome} · Mat: {aluno.matricula} · Turma:{" "}
+                        {aluno.turma}
+                      </p>
+                    ))}
+
+                    {alunosDestino.length > 8 && (
+                      <p className="text-xs font-medium text-green-800">
+                        +{alunosDestino.length - 8} aluno(s)
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Turno</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Turno
+                </label>
+
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
@@ -224,8 +468,11 @@ export default function Horario() {
                     }`}
                   >
                     ☀️ Matutino
-                    <p className="mt-0.5 text-xs font-normal opacity-70">07:00 – 11:15</p>
+                    <p className="mt-0.5 text-xs font-normal opacity-70">
+                      07:00 – 11:15
+                    </p>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => selecionarTurno("vespertino")}
@@ -236,8 +483,11 @@ export default function Horario() {
                     }`}
                   >
                     🌤️ Vespertino
-                    <p className="mt-0.5 text-xs font-normal opacity-70">13:00 – 17:15</p>
+                    <p className="mt-0.5 text-xs font-normal opacity-70">
+                      13:00 – 17:15
+                    </p>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => selecionarTurno("noturno")}
@@ -248,17 +498,22 @@ export default function Horario() {
                     }`}
                   >
                     ☾ Noturno
-                    <p className="mt-0.5 text-xs font-normal opacity-70">19:00 – 22:15</p>
+                    <p className="mt-0.5 text-xs font-normal opacity-70">
+                      19:00 – 22:15
+                    </p>
                   </button>
                 </div>
               </div>
 
-              {/* Dias da semana */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Dias da semana</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Dias da semana
+                </label>
+
                 <div className="flex flex-wrap gap-2">
                   {DIAS_SEMANA.map((dia) => {
                     const selecionado = diasSelecionados.includes(dia.value);
+
                     return (
                       <button
                         key={dia.value}
@@ -275,6 +530,7 @@ export default function Horario() {
                     );
                   })}
                 </div>
+
                 {diasSelecionados.length > 0 && (
                   <p className="text-xs text-gray-500">
                     {diasSelecionados.length} dia(s) selecionado(s)
@@ -282,37 +538,59 @@ export default function Horario() {
                 )}
               </div>
 
-              {/* Horários (editáveis) */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">
                   Horários
-                  <span className="ml-1 text-xs font-normal text-gray-400">(ajuste se necessário)</span>
+                  <span className="ml-1 text-xs font-normal text-gray-400">
+                    (ajuste se necessário)
+                  </span>
                 </label>
+
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1">
                     <p className="text-xs text-gray-500">Entrada</p>
+
                     <Input
                       type="time"
                       value={horarioForm.horaEntrada}
-                      onChange={(e) => setHorarioForm({ ...horarioForm, horaEntrada: e.target.value })}
+                      onChange={(evento) =>
+                        setHorarioForm({
+                          ...horarioForm,
+                          horaEntrada: evento.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
+
                   <div className="space-y-1">
                     <p className="text-xs text-gray-500">Limite</p>
+
                     <Input
                       type="time"
                       value={horarioForm.horaLimiteEntrada}
-                      onChange={(e) => setHorarioForm({ ...horarioForm, horaLimiteEntrada: e.target.value })}
+                      onChange={(evento) =>
+                        setHorarioForm({
+                          ...horarioForm,
+                          horaLimiteEntrada: evento.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
+
                   <div className="space-y-1">
                     <p className="text-xs text-gray-500">Saída</p>
+
                     <Input
                       type="time"
                       value={horarioForm.horaSaida}
-                      onChange={(e) => setHorarioForm({ ...horarioForm, horaSaida: e.target.value })}
+                      onChange={(evento) =>
+                        setHorarioForm({
+                          ...horarioForm,
+                          horaSaida: evento.target.value,
+                        })
+                      }
                       required
                     />
                   </div>
@@ -322,7 +600,11 @@ export default function Horario() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={salvando || !alunoSelecionado || diasSelecionados.length === 0}
+                disabled={
+                  salvando ||
+                  alunosDestino.length === 0 ||
+                  diasSelecionados.length === 0
+                }
               >
                 {salvando ? (
                   <>
@@ -332,7 +614,7 @@ export default function Horario() {
                 ) : (
                   <>
                     <Plus className="mr-2 h-4 w-4" />
-                    Cadastrar {diasSelecionados.length > 1 ? `${diasSelecionados.length} horários` : "Horário"}
+                    Cadastrar {totalHorarios} horário(s)
                   </>
                 )}
               </Button>
@@ -340,11 +622,13 @@ export default function Horario() {
           </CardContent>
         </Card>
 
-        {/* Tabela */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Horários cadastrados</CardTitle>
-            <CardDescription>Lista de regras de entrada e saída por aluno.</CardDescription>
+
+            <CardDescription>
+              Lista de regras de entrada e saída por aluno.
+            </CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -372,36 +656,73 @@ export default function Horario() {
                       <th className="px-4 py-3 text-right">Ações</th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {horarios.map((horario) => (
-                      <tr key={horario.id} className="border-b last:border-0 hover:bg-gray-50">
+                      <tr
+                        key={horario.id}
+                        className="border-b last:border-0 hover:bg-gray-50"
+                      >
                         <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900">{horario.nome}</div>
-                          <div className="text-xs text-gray-500">{horario.matricula}</div>
+                          <div className="font-medium text-gray-900">
+                            {horario.nome}
+                          </div>
+
+                          <div className="text-xs text-gray-500">
+                            {horario.matricula}
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{horario.turma}</td>
+
+                        <td className="px-4 py-3 text-gray-600">
+                          {horario.turma}
+                        </td>
+
                         <td className="px-4 py-3">
-                          <Badge variante="secundario">{DIAS_LABEL[horario.diaSemana]}</Badge>
+                          <Badge variante="secundario">
+                            {DIAS_LABEL[horario.diaSemana]}
+                          </Badge>
                         </td>
+
                         <td className="px-4 py-3">
                           {(() => {
-                            const t = turnoDoHorario(horario.horaEntrada);
+                            const turnoTabela = turnoDoHorario(
+                              horario.horaEntrada,
+                            );
+
                             const styles = {
                               matutino: "bg-yellow-100 text-yellow-700",
                               vespertino: "bg-blue-100 text-blue-700",
                               noturno: "bg-indigo-100 text-indigo-700",
                             };
-                            const labels = { matutino: "Matutino", vespertino: "Vespertino", noturno: "Noturno" };
+
+                            const labels = {
+                              matutino: "Matutino",
+                              vespertino: "Vespertino",
+                              noturno: "Noturno",
+                            };
+
                             return (
-                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${styles[t]}`}>
-                                {labels[t]}
+                              <span
+                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${styles[turnoTabela]}`}
+                              >
+                                {labels[turnoTabela]}
                               </span>
                             );
                           })()}
                         </td>
-                        <td className="px-4 py-3 text-gray-600">{horario.horaEntrada}</td>
-                        <td className="px-4 py-3 text-gray-600">{horario.horaLimiteEntrada}</td>
-                        <td className="px-4 py-3 text-gray-600">{horario.horaSaida}</td>
+
+                        <td className="px-4 py-3 text-gray-600">
+                          {horario.horaEntrada}
+                        </td>
+
+                        <td className="px-4 py-3 text-gray-600">
+                          {horario.horaLimiteEntrada}
+                        </td>
+
+                        <td className="px-4 py-3 text-gray-600">
+                          {horario.horaSaida}
+                        </td>
+
                         <td className="px-4 py-3 text-right">
                           <Button
                             type="button"

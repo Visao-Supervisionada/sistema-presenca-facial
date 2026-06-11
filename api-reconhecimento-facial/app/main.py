@@ -6,12 +6,10 @@ from app.local_store import (
     add_person,
     clear_people,
     delete_person_by_registration,
-    list_people_without_embeddings,
     load_people,
 )
 from app.schemas import (
     RootResponse,
-    HealthResponse,
     PeopleListResponse,
     EnrollResponse,
     RecognizeResponse,
@@ -33,6 +31,17 @@ app.add_middleware(
 )
 
 
+people_cache = load_people()
+face_service.rebuild_index(people_cache)
+
+
+def reload_people_cache() -> None:
+    global people_cache
+
+    people_cache = load_people()
+    face_service.rebuild_index(people_cache)
+
+
 @app.get("/", response_model=RootResponse)
 def root():
     return {
@@ -41,20 +50,44 @@ def root():
     }
 
 
-@app.get("/health", response_model=HealthResponse)
+@app.get("/health")
 def health():
     return {
         "status": "ok",
         "service": "api-presenca-facial",
-        "model": "insightface/buffalo_l",
-        "storage": "local-json",
+        "model": face_service.model_name,
+        "storage": "firebase-firestore",
         "classifier_loaded": face_service.match_classifier is not None,
+        "total_people_cached": len(people_cache),
+        "total_people_indexed": len(face_service.face_index.people),
+        "threshold": face_service.match_threshold,
+        "unknown_threshold": face_service.unknown_threshold,
+        "min_cosine_threshold": face_service.min_cosine_threshold,
+    }
+
+
+@app.post("/reload-index")
+def reload_index():
+    reload_people_cache()
+
+    return {
+        "success": True,
+        "message": "Índice facial recarregado a partir do Firebase.",
+        "total_people": len(people_cache),
+        "total_people_indexed": len(face_service.face_index.people),
     }
 
 
 @app.get("/people", response_model=PeopleListResponse)
 def get_people():
-    people = list_people_without_embeddings()
+    people = [
+        {
+            "id": person["id"],
+            "name": person["name"],
+            "registration": person.get("registration", ""),
+        }
+        for person in people_cache
+    ]
 
     return {
         "total": len(people),
@@ -78,6 +111,8 @@ async def enroll(
             embedding=embedding,
         )
 
+        reload_people_cache()
+
         return {
             "success": True,
             "message": "Pessoa cadastrada com sucesso.",
@@ -97,12 +132,12 @@ async def enroll(
 @app.post("/recognize", response_model=RecognizeResponse)
 async def recognize(
     file: UploadFile = File(...),
-    threshold: float = Form(0.60),
-    min_cosine_threshold: float = Form(0.0),
+    threshold: float | None = Form(None),
+    min_cosine_threshold: float | None = Form(None),
 ):
     try:
         image_bytes = await file.read()
-        stored_people = load_people()
+        stored_people = people_cache
 
         if len(stored_people) == 0:
             return {
@@ -110,7 +145,7 @@ async def recognize(
                 "message": "Nenhuma pessoa cadastrada.",
                 "confidence": 0.0,
                 "cosine_confidence": 0.0,
-                "threshold": threshold,
+                "threshold": threshold or face_service.match_threshold,
                 "person": None,
             }
 
@@ -149,12 +184,12 @@ async def recognize(
 @app.post("/recognize-multiple", response_model=RecognizeMultipleResponse)
 async def recognize_multiple(
     file: UploadFile = File(...),
-    threshold: float = Form(0.60),
-    min_cosine_threshold: float = Form(0.0),
+    threshold: float | None = Form(None),
+    min_cosine_threshold: float | None = Form(None),
 ):
     try:
         image_bytes = await file.read()
-        stored_people = load_people()
+        stored_people = people_cache
 
         result = face_service.recognize_multiple(
             image_bytes=image_bytes,
@@ -175,7 +210,7 @@ async def recognize_multiple(
 async def compare(
     file1: UploadFile = File(...),
     file2: UploadFile = File(...),
-    threshold: float = Form(0.60),
+    threshold: float | None = Form(None),
 ):
     try:
         image_1_bytes = await file1.read()
@@ -190,7 +225,7 @@ async def compare(
         return {
             "match": match,
             "confidence": score,
-            "threshold": threshold,
+            "threshold": threshold or face_service.match_threshold,
         }
 
     except ValueError as error:
@@ -202,10 +237,11 @@ async def compare(
 @app.delete("/people", response_model=DeletePeopleResponse)
 def delete_people():
     clear_people()
+    reload_people_cache()
 
     return {
         "success": True,
-        "message": "Todos os cadastros locais foram removidos.",
+        "message": "Todos os embeddings faciais foram removidos.",
     }
 
 
@@ -218,6 +254,8 @@ def delete_person(registration: str):
             status_code=404,
             detail="Pessoa não encontrada na base facial.",
         )
+
+    reload_people_cache()
 
     return {
         "success": True,

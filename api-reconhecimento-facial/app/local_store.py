@@ -1,86 +1,140 @@
-import json
 import os
 from typing import Any, Dict, List
 from uuid import uuid4
 
+import firebase_admin
+from firebase_admin import credentials, firestore
 
-DATA_PATH = "/app/data/embeddings.json"
+
+FACE_COLLECTION = os.getenv("FACE_EMBEDDINGS_COLLECTION", "face_embeddings")
+MODEL_NAME = os.getenv("FACE_MODEL_NAME", "insightface/buffalo_s")
+
+_db = None
 
 
-def ensure_data_file() -> None:
-    os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
+def get_db():
+    global _db
 
-    if not os.path.exists(DATA_PATH):
-        with open(DATA_PATH, "w", encoding="utf-8") as file:
-            json.dump([], file, ensure_ascii=False, indent=2)
+    if _db is not None:
+        return _db
+
+    if not firebase_admin._apps:
+        credential_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+
+        if not credential_path or not os.path.exists(credential_path):
+            raise RuntimeError(
+                "GOOGLE_APPLICATION_CREDENTIALS não foi definida ou o arquivo não existe."
+            )
+
+        cred = credentials.Certificate(credential_path)
+        firebase_admin.initialize_app(cred)
+
+    _db = firestore.client()
+    return _db
+
+
+def _collection():
+    return get_db().collection(FACE_COLLECTION)
+
+
+def _normalizar_matricula(valor: str) -> str:
+    return str(valor or "").strip()
+
+
+def _normalizar_nome(valor: str) -> str:
+    return str(valor or "").strip()
+
+
+def _buscar_face_id_por_matricula(matricula: str) -> str | None:
+    matricula = _normalizar_matricula(matricula)
+
+    if not matricula:
+        return None
+
+    docs = (
+        _collection()
+        .where("matricula", "==", matricula)
+        .limit(1)
+        .stream()
+    )
+
+    for doc in docs:
+        data = doc.to_dict() or {}
+        return data.get("faceId") or data.get("id")
+
+    return None
 
 
 def load_people() -> List[Dict[str, Any]]:
-    ensure_data_file()
+    docs = (
+        _collection()
+        .where("ativo", "==", True)
+        .stream()
+    )
 
-    with open(DATA_PATH, "r", encoding="utf-8") as file:
-        try:
-            people = json.load(file)
-        except json.JSONDecodeError:
-            return []
+    pessoas_por_matricula: dict[str, Dict[str, Any]] = {}
 
-    normalized_people: List[Dict[str, Any]] = []
+    for doc in docs:
+        data = doc.to_dict() or {}
 
-    for person in people:
-        normalized_person = {
-            "id": person.get("id", str(uuid4())),
-            "name": person.get("name", ""),
-            "registration": person.get("registration", ""),
-            "embeddings": [],
-        }
+        embedding = data.get("embedding")
 
-        if "embeddings" in person and isinstance(person["embeddings"], list):
-            normalized_person["embeddings"] = person["embeddings"]
-        elif "embedding" in person and isinstance(person["embedding"], list):
-            normalized_person["embeddings"] = [person["embedding"]]
+        if not embedding:
+            continue
 
-        normalized_people.append(normalized_person)
+        matricula = _normalizar_matricula(
+            data.get("matricula") or data.get("registration")
+        )
 
-    return normalized_people
+        face_id = str(data.get("faceId") or data.get("id") or doc.id)
+        nome = _normalizar_nome(data.get("nome") or data.get("name"))
 
+        chave = matricula or face_id
 
-def save_people(people: List[Dict[str, Any]]) -> None:
-    ensure_data_file()
+        if chave not in pessoas_por_matricula:
+            pessoas_por_matricula[chave] = {
+                "id": face_id,
+                "name": nome,
+                "registration": matricula,
+                "embeddings": [],
+            }
 
-    with open(DATA_PATH, "w", encoding="utf-8") as file:
-        json.dump(people, file, ensure_ascii=False, indent=2)
+        pessoas_por_matricula[chave]["embeddings"].append(embedding)
+
+    return list(pessoas_por_matricula.values())
 
 
 def add_person(name: str, registration: str, embedding: List[float]) -> Dict[str, Any]:
-    people = load_people()
+    nome = _normalizar_nome(name)
+    matricula = _normalizar_matricula(registration)
 
-    normalized_name = name.strip()
-    normalized_registration = registration.strip()
+    face_id_existente = _buscar_face_id_por_matricula(matricula)
+    face_id = face_id_existente or str(uuid4())
 
-    existing_person = None
+    doc_ref = _collection().document()
 
-    for person in people:
-        if normalized_registration and person.get("registration", "").strip() == normalized_registration:
-            existing_person = person
-            break
-
-    if existing_person is None:
-        existing_person = {
-            "id": str(uuid4()),
-            "name": normalized_name,
-            "registration": normalized_registration,
-            "embeddings": [],
+    doc_ref.set(
+        {
+            "id": doc_ref.id,
+            "faceId": face_id,
+            "nome": nome,
+            "name": nome,
+            "matricula": matricula,
+            "registration": matricula,
+            "ativo": True,
+            "modelo": MODEL_NAME,
+            "embedding": embedding,
+            "criadoEm": firestore.SERVER_TIMESTAMP,
+            "atualizadoEm": firestore.SERVER_TIMESTAMP,
         }
-        people.append(existing_person)
+    )
 
-    existing_person["name"] = normalized_name
-    existing_person["registration"] = normalized_registration
-    existing_person.setdefault("embeddings", [])
-    existing_person["embeddings"].append(embedding)
-
-    save_people(people)
-
-    return existing_person
+    return {
+        "id": face_id,
+        "name": nome,
+        "registration": matricula,
+        "embeddings": [embedding],
+    }
 
 
 def list_people_without_embeddings() -> List[Dict[str, str]]:
@@ -97,22 +151,33 @@ def list_people_without_embeddings() -> List[Dict[str, str]]:
 
 
 def clear_people() -> None:
-    save_people([])
+    docs = _collection().stream()
+
+    for doc in docs:
+        doc.reference.delete()
 
 
 def delete_person_by_registration(registration: str) -> bool:
-    people = load_people()
+    matricula = _normalizar_matricula(registration)
 
-    normalized_registration = registration.strip()
-
-    filtered_people = [
-        person
-        for person in people
-        if person.get("registration", "").strip() != normalized_registration
-    ]
-
-    if len(filtered_people) == len(people):
+    if not matricula:
         return False
 
-    save_people(filtered_people)
+    docs = list(
+        _collection()
+        .where("matricula", "==", matricula)
+        .stream()
+    )
+
+    if not docs:
+        return False
+
+    for doc in docs:
+        doc.reference.delete()
+
     return True
+
+
+def save_people(_people: List[Dict[str, Any]]) -> None:
+    # mantido apenas por compatibilidade
+    return

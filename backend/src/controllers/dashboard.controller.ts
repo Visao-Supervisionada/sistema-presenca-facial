@@ -1,49 +1,73 @@
-import { RequestHandler } from 'express';
-import { db } from '../config/firebase';
-import { listarAlunos } from '../services/alunos.service';
-import { listarHorarios } from '../services/horarios.service';
-import { DiaSemana } from '../types/horario.types';
-import { Presenca } from '../types/presenca.types';
+import { RequestHandler } from "express";
+import { db } from "../config/firebase";
+import { listarAlunos } from "../services/alunos.service";
+import { listarHorarios } from "../services/horarios.service";
+import { DiaSemana } from "../types/horario.types";
+import { Presenca } from "../types/presenca.types";
 
-const colecaoPresencas = db.collection('presencas');
+const colecaoPresencas = db.collection("presencas");
 
 function horaParaMinutos(hora: string): number {
-  const [hh, mm] = hora.split(':').map(Number);
+  const [hh, mm] = hora.split(":").map(Number);
   return hh * 60 + mm;
 }
 
 function diaSemanaDeData(dataStr: string): DiaSemana {
-  const [ano, mes, dia] = dataStr.split('-').map(Number);
+  const [ano, mes, dia] = dataStr.split("-").map(Number);
   const d = new Date(ano, mes - 1, dia);
-  const dias: DiaSemana[] = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+  const dias: DiaSemana[] = [
+    "domingo",
+    "segunda",
+    "terca",
+    "quarta",
+    "quinta",
+    "sexta",
+    "sabado",
+  ];
   return dias[d.getDay()];
 }
 
 function horaAtualEmMinutos(): number {
-  const agora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const agora = new Date().toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   return horaParaMinutos(agora);
 }
 
 export const resumoDashboardController: RequestHandler = async (req, res) => {
   try {
     const d = new Date();
-    const dataHoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const data = String(req.query['data'] || dataHoje);
+    const dataHoje = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const data = String(req.query["data"] || dataHoje);
     const diaSemana = diaSemanaDeData(data);
     const agoraMins = horaAtualEmMinutos();
 
     const [alunos, horarios, snapshotPresencas] = await Promise.all([
       listarAlunos(),
       listarHorarios({ diaSemana }),
-      colecaoPresencas.where('data', '==', data).get(),
+      colecaoPresencas.where("data", "==", data).get(),
     ]);
 
     const presencas = snapshotPresencas.docs.map((d) => d.data() as Presenca);
 
-    const presencasPorMatricula = new Map(presencas.map((p) => [p.matricula, p]));
+    const presencasPorMatricula = new Map(
+      presencas.map((p) => [p.matricula, p]),
+    );
 
     const presentes = presencas.filter((p) => p.horaEntrada).length;
-    const atrasos = presencas.filter((p) => p.status === 'atrasado').length;
+    const atrasos = horarios.filter((h) => {
+      const presenca = presencasPorMatricula.get(h.matricula);
+
+      if (!presenca?.horaEntrada) {
+        return false;
+      }
+
+      return (
+        horaParaMinutos(presenca.horaEntrada) >
+        horaParaMinutos(h.horaLimiteEntrada)
+      );
+    }).length;
 
     const ausentes = horarios.filter((h) => {
       const limiteEntradaMins = horaParaMinutos(h.horaLimiteEntrada);
@@ -58,7 +82,7 @@ export const resumoDashboardController: RequestHandler = async (req, res) => {
         : 0;
 
     const presencasOrdenadas = [...presencas]
-      .sort((a, b) => (b.horaEntrada ?? '').localeCompare(a.horaEntrada ?? ''))
+      .sort((a, b) => (b.horaEntrada ?? "").localeCompare(a.horaEntrada ?? ""))
       .slice(0, 10);
 
     res.json({
@@ -74,7 +98,7 @@ export const resumoDashboardController: RequestHandler = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Erro ao buscar resumo do dashboard.',
+      message: "Erro ao buscar resumo do dashboard.",
       error: error instanceof Error ? error.message : String(error),
     });
   }
@@ -92,11 +116,11 @@ export const frequenciaSemanaController: RequestHandler = async (req, res) => {
       const diaSemana = d.getDay();
       if (diaSemana === 0 || diaSemana === 6) continue;
 
-      const dataStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      const dataStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const dias = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
       const snapshot = await colecaoPresencas
-        .where('data', '==', dataStr)
+        .where("data", "==", dataStr)
         .get();
 
       const presentes = snapshot.docs
@@ -110,7 +134,7 @@ export const frequenciaSemanaController: RequestHandler = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Erro ao buscar frequência da semana.',
+      message: "Erro ao buscar frequência da semana.",
       error: error instanceof Error ? error.message : String(error),
     });
   }

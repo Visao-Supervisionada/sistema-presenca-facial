@@ -6,5 +6,20 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    environment:
+      FACE_CTX_ID: "0"
+      FACE_DET_SIZE: "320"
+      FACE_MODEL_NAME: "buffalo_s"
+      INSIGHTFACE_HOME: "/root/.insightface"
+
+      FACE_EMBEDDINGS_COLLECTION: "face_embeddings"
+      GOOGLE_APPLICATION_CREDENTIALS: "/app/secrets/serviceAccountKey.json"
+
+      FACE_CLASSIFIER_PATH: "/app/modelos/classificador_match_embeddings_buffalo_s.pkl"
+      FACE_UNKNOWN_THRESHOLD: "0.45"
+      FACE_MATCH_THRESHOLD: "0.50"
+      FACE_MIN_COSINE_THRESHOLD: "0.35"
+
+    gpus: all
     volumes:
-      - ./data:/app/data
+      - ./secrets:/app/secrets:ro
