@@ -249,6 +249,16 @@ O gerenciamento seguro das credenciais do Firebase é implementado em múltiplas
 
 ---
 
+### 5.7 Modelo de Dados — Coleções do Firestore
+
+O diagrama a seguir apresenta as principais entidades persistidas no Firebase Firestore e os relacionamentos entre elas, refletindo a estrutura de coleções utilizada pelo Backend de Negócios.
+
+![Diagrama de Classes — Sistema SRGFA](imagens/05-diagrama-classes.png)
+
+As entidades `Aluno` e `ComponenteCurricular` atuam como raízes do modelo: `Aluno` agrega registros de presença, frequência, horários e notas; `ComponenteCurricular` agrega objetos de conhecimento, avaliações e notas parciais. A entidade `Nota` estabelece a interseção entre as duas raízes, vinculando um aluno a um componente curricular em um bimestre específico.
+
+---
+
 ## 6. Serviço 3 — Frontend de Apresentação
 
 O Frontend de Apresentação é a interface gráfica do SRGFA, construída como uma Single Page Application (SPA) com React 19, TypeScript 5.8 e Vite 6. Este componente é responsável por toda a experiência do usuário — operador, professor, coordenador ou secretário escolar — oferecendo um conjunto de telas interativas para gerenciamento de cadastros, monitoramento de reconhecimento facial em tempo real, administração do diário digital e acompanhamento de indicadores de frequência.
