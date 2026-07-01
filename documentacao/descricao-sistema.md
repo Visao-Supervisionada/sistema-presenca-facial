@@ -261,15 +261,54 @@ classDiagram
     classDef entidade  fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
     classDef intersec  fill:#fef9c3,stroke:#f59e0b,color:#78350f,font-weight:bold
 
-    class Aluno:::raiz
-    class ComponenteCurricular:::raiz
-    class Nota:::intersec
-    class Horario:::entidade
-    class Presenca:::entidade
-    class RegistroDiario:::entidade
-    class JustificativaFalta:::entidade
-    class ObjetoConhecimento:::entidade
-    class Avaliacao:::entidade
+    class Aluno:::raiz {
+        +String matricula
+        +String nome
+        +String turma
+        +String perfil
+        +String faceId
+        +Boolean ativo
+    }
+    class ComponenteCurricular:::raiz {
+        +String nome
+        +String turma
+        +Boolean ativo
+    }
+    class Nota:::intersec {
+        +String alunoId
+        +String componente
+        +Number bimestre
+        +Number media
+    }
+    class Horario:::entidade {
+        +String diaSemana
+        +String horaEntrada
+        +String horaSaida
+    }
+    class Presenca:::entidade {
+        +String data
+        +String status
+        +Number confidence
+    }
+    class RegistroDiario:::entidade {
+        +String data
+        +String statusEntrada
+        +String statusSaida
+    }
+    class JustificativaFalta:::entidade {
+        +String data
+        +String justificativa
+    }
+    class ObjetoConhecimento:::entidade {
+        +String data
+        +String conteudo
+        +String status
+    }
+    class Avaliacao:::entidade {
+        +String titulo
+        +String tipo
+        +Number valor
+    }
 
     Aluno "1" --> "0..*" Horario : possui
     Aluno "1" --> "0..*" Presenca : gera
