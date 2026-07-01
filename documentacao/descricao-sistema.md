@@ -257,52 +257,6 @@ O diagrama a seguir apresenta as principais entidades persistidas no Firebase Fi
 classDiagram
     direction LR
 
-    class Aluno {
-        +String matricula
-        +String nome
-        +String turma
-        +String faceId
-    }
-    class Horario {
-        +String diaSemana
-        +String horaEntrada
-        +String horaSaida
-    }
-    class Presenca {
-        +String data
-        +String status
-        +Number confidence
-    }
-    class RegistroDiario {
-        +String data
-        +String statusEntrada
-        +String statusSaida
-    }
-    class JustificativaFalta {
-        +String data
-        +String justificativa
-    }
-    class Nota {
-        +String componente
-        +Number bimestre
-        +Number media
-    }
-    class ComponenteCurricular {
-        +String nome
-        +String turma
-        +Boolean ativo
-    }
-    class ObjetoConhecimento {
-        +String data
-        +String conteudo
-        +String status
-    }
-    class Avaliacao {
-        +String titulo
-        +String tipo
-        +Number valor
-    }
-
     Aluno "1" --> "0..*" Horario : possui
     Aluno "1" --> "0..*" Presenca : gera
     Aluno "1" --> "0..*" RegistroDiario : registra
