@@ -255,7 +255,21 @@ O diagrama a seguir apresenta as principais entidades persistidas no Firebase Fi
 
 ```mermaid
 classDiagram
-    direction LR
+    direction TB
+
+    classDef raiz      fill:#1e3a5f,stroke:#1e3a5f,color:#ffffff,font-weight:bold
+    classDef entidade  fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
+    classDef intersec  fill:#fef9c3,stroke:#f59e0b,color:#78350f,font-weight:bold
+
+    class Aluno:::raiz
+    class ComponenteCurricular:::raiz
+    class Nota:::intersec
+    class Horario:::entidade
+    class Presenca:::entidade
+    class RegistroDiario:::entidade
+    class JustificativaFalta:::entidade
+    class ObjetoConhecimento:::entidade
+    class Avaliacao:::entidade
 
     Aluno "1" --> "0..*" Horario : possui
     Aluno "1" --> "0..*" Presenca : gera
