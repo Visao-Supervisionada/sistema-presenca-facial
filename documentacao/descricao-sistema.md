@@ -253,7 +253,105 @@ O gerenciamento seguro das credenciais do Firebase é implementado em múltiplas
 
 O diagrama a seguir apresenta as principais entidades persistidas no Firebase Firestore e os relacionamentos entre elas, refletindo a estrutura de coleções utilizada pelo Backend de Negócios.
 
-![Diagrama de Classes — Sistema SRGFA](imagens/05-diagrama-classes.png)
+```mermaid
+classDiagram
+    direction LR
+
+    class Aluno {
+        +String id
+        +String nome
+        +String matricula
+        +String turma
+        +String perfil
+        +String faceId
+        +Boolean ativo
+    }
+
+    class Horario {
+        +String id
+        +String matricula
+        +String turma
+        +DiaSemana diaSemana
+        +String horaEntrada
+        +String horaLimiteEntrada
+        +String horaSaida
+    }
+
+    class Presenca {
+        +String id
+        +String alunoId
+        +String data
+        +String horaEntrada
+        +String horaSaida
+        +String status
+        +Number confidence
+    }
+
+    class RegistroDiario {
+        +String id
+        +String alunoId
+        +String turma
+        +String data
+        +String horaEntradaReal
+        +String horaSaidaReal
+        +String statusEntrada
+        +String statusSaida
+    }
+
+    class JustificativaFalta {
+        +String id
+        +String alunoId
+        +String turma
+        +String data
+        +String justificativa
+    }
+
+    class ComponenteCurricular {
+        +String id
+        +String nome
+        +String turma
+        +Boolean ativo
+    }
+
+    class ObjetoConhecimento {
+        +String id
+        +String componente
+        +String data
+        +String conteudo
+        +String status
+    }
+
+    class Avaliacao {
+        +String id
+        +String componente
+        +String data
+        +String titulo
+        +String tipo
+        +Number valor
+    }
+
+    class Nota {
+        +String id
+        +String alunoId
+        +String componente
+        +Number bimestre
+        +Number av1
+        +Number av2
+        +Number av3
+        +Number av4
+        +Number media
+    }
+
+    Aluno "1" --> "0..*" Horario : possui
+    Aluno "1" --> "0..*" Presenca : gera
+    Aluno "1" --> "0..*" RegistroDiario : registrado em
+    Aluno "1" --> "0..*" JustificativaFalta : solicita
+    Aluno "1" --> "0..*" Nota : recebe
+
+    ComponenteCurricular "1" --> "0..*" ObjetoConhecimento : contém
+    ComponenteCurricular "1" --> "0..*" Avaliacao : possui
+    ComponenteCurricular "1" --> "0..*" Nota : avalia em
+```
 
 As entidades `Aluno` e `ComponenteCurricular` atuam como raízes do modelo: `Aluno` agrega registros de presença, frequência, horários e notas; `ComponenteCurricular` agrega objetos de conhecimento, avaliações e notas parciais. A entidade `Nota` estabelece a interseção entre as duas raízes, vinculando um aluno a um componente curricular em um bimestre específico.
 
